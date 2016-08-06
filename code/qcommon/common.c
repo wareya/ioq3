@@ -3058,11 +3058,11 @@ double Com_DesiredWait( void ) {
 		else
 		{
 			if(com_minimized->integer && com_maxfpsMinimized->integer > 0)
-				minMsec = 1000.0 / com_maxfpsMinimized->integer;
+				minMsec = 1000.0 / com_maxfpsMinimized->value;
 			else if(com_unfocused->integer && com_maxfpsUnfocused->integer > 0)
-				minMsec = 1000.0 / com_maxfpsUnfocused->integer;
+				minMsec = 1000.0 / com_maxfpsUnfocused->value;
 			else if(com_maxfps->integer > 0)
-				minMsec = 1000.0 / com_maxfps->integer;
+				minMsec = 1000.0 / com_maxfps->value;
 			else
 				minMsec = 0;
 		}
@@ -3116,7 +3116,7 @@ void Lim_Frame( void ) {
 	else
 	{
 		consecutive++;
-		// Get desired timestamp for framelimiter to end on based on number of consecutive framelimited frames
+		// Get desired timestamp for framelimiter to end on based on number of consecutive correctly framelimited frames
 		double TargetTime = reference_time + consecutive*minMsec;
 		double Now = Sys_Milliseconds();
 		double WaitMilliseconds = TargetTime-Now;
