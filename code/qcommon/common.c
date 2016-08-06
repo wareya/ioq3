@@ -31,6 +31,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <winsock.h>
 #endif
 
+#include <math.h> // floor
+
 int demo_protocols[] =
 { 67, 66, 0 };
 
@@ -3074,6 +3076,111 @@ int Com_TimeVal(int minMsec)
 	return timeVal;
 }
 
+double Com_DesiredWait( void ) {
+	double minMsec;
+	if(!com_timedemo->integer)
+	{
+		if(com_dedicated->integer)
+			minMsec = SV_FrameMsec();
+		else
+		{
+			if(com_minimized->integer && com_maxfpsMinimized->integer > 0)
+				minMsec = 1000.0 / com_maxfpsMinimized->integer;
+			else if(com_unfocused->integer && com_maxfpsUnfocused->integer > 0)
+				minMsec = 1000.0 / com_maxfpsUnfocused->integer;
+			else if(com_maxfps->integer > 0)
+				minMsec = 1000.0 / com_maxfps->integer;
+			else
+				minMsec = 0;
+		}
+	}
+	else
+		minMsec = 0;
+	return minMsec;
+}
+
+void Smart_Sleep( int minMsec )
+{
+	int	timeVal, timeValSV;
+	do
+	{
+		if(com_sv_running->integer)
+		{
+			timeValSV = SV_SendQueuedPackets();
+			
+			timeVal = Com_TimeVal(minMsec);
+
+			if(timeValSV < timeVal)
+				timeVal = timeValSV;
+		}
+		else
+			timeVal = Com_TimeVal(minMsec);
+		
+		if(com_busyWait->integer || timeVal < 1)
+			NET_Sleep(0);
+		else
+			NET_Sleep(timeVal - 1);
+	} while(Com_TimeVal(minMsec));
+}
+
+void Lim_Frame( void ) {
+	static double reference_time, lastend;
+	static unsigned long long consecutive;
+	static int dostart = 1;
+	
+	// Figure out how much time we want to wait
+	static double last_minMsec = -1;
+	double minMsec = Com_DesiredWait();
+	
+	if(dostart)
+	{
+		consecutive = 0;
+		lastend = Sys_Milliseconds();
+		reference_time = lastend;
+		dostart = 0;
+		Smart_Sleep(0);
+	}
+	else
+	{
+		consecutive++;
+		// Get desired timestamp for framelimiter to end on based on number of consecutive framelimited frames
+		double TargetTime = reference_time + consecutive*minMsec;
+		double Now = Sys_Milliseconds();
+		double WaitMilliseconds = TargetTime-Now;
+		// If we haven't yet missed that timestamp, wait on it. Otherwise, reset.
+		if(WaitMilliseconds > 0 && minMsec == last_minMsec)
+		{
+			// I do not trust NET_Sleep to busywait the last couple ms+fraction correctly.
+			// If we miss network updates because of this, so be it.
+			int delayvalue = floor(WaitMilliseconds-1);
+			if(delayvalue < 0) delayvalue = 0;
+			Smart_Sleep(delayvalue);
+			while(Sys_Milliseconds() < TargetTime);
+			
+			lastend = TargetTime;
+		}
+		// we're out of sync but haven't lost a full frametime of phase, pretend it's not happening
+		else if(Now < TargetTime + minMsec && minMsec == last_minMsec)
+		{
+			Smart_Sleep(0);
+			
+			lastend = TargetTime;
+		}
+		// we've fallen a full frame behind our framelimiter's ideal in terms of phase, OR the framerate limit has changed, reset
+		else
+		{
+			Smart_Sleep(0);
+			
+			lastend = Now;
+			consecutive = 0;
+			reference_time = Now;
+		}
+	}
+	
+	last_minMsec = minMsec;
+}
+
+
 /*
 =================
 Com_Frame
@@ -3081,9 +3188,8 @@ Com_Frame
 */
 void Com_Frame( void ) {
 
-	int		msec, minMsec;
-	int		timeVal, timeValSV;
-	static int	lastTime = 0, bias = 0;
+	int		msec;
+	static int	lastTime = 0;
  
 	int		timeBeforeFirstEvents;
 	int		timeBeforeServer;
@@ -3112,56 +3218,8 @@ void Com_Frame( void ) {
 		timeBeforeFirstEvents = Sys_Milliseconds ();
 	}
 
-	// Figure out how much time we have
-	if(!com_timedemo->integer)
-	{
-		if(com_dedicated->integer)
-			minMsec = SV_FrameMsec();
-		else
-		{
-			if(com_minimized->integer && com_maxfpsMinimized->integer > 0)
-				minMsec = 1000 / com_maxfpsMinimized->integer;
-			else if(com_unfocused->integer && com_maxfpsUnfocused->integer > 0)
-				minMsec = 1000 / com_maxfpsUnfocused->integer;
-			else if(com_maxfps->integer > 0)
-				minMsec = 1000 / com_maxfps->integer;
-			else
-				minMsec = 1;
-			
-			timeVal = com_frameTime - lastTime;
-			bias += timeVal - minMsec;
-			
-			if(bias > minMsec)
-				bias = minMsec;
-			
-			// Adjust minMsec if previous frame took too long to render so
-			// that framerate is stable at the requested value.
-			minMsec -= bias;
-		}
-	}
-	else
-		minMsec = 1;
+	Lim_Frame( );
 
-	do
-	{
-		if(com_sv_running->integer)
-		{
-			timeValSV = SV_SendQueuedPackets();
-			
-			timeVal = Com_TimeVal(minMsec);
-
-			if(timeValSV < timeVal)
-				timeVal = timeValSV;
-		}
-		else
-			timeVal = Com_TimeVal(minMsec);
-		
-		if(com_busyWait->integer || timeVal < 1)
-			NET_Sleep(0);
-		else
-			NET_Sleep(timeVal - 1);
-	} while(Com_TimeVal(minMsec));
-	
 	IN_Frame();
 
 	lastTime = com_frameTime;
