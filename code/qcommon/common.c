@@ -31,8 +31,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <winsock.h>
 #endif
 
-#include <math.h> // floor
-
 int demo_protocols[] =
 { 67, 66, 0 };
 
@@ -1936,11 +1934,23 @@ static sysEvent_t  eventQueue[ MAX_QUEUED_EVENTS ];
 static int         eventHead = 0;
 static int         eventTail = 0;
 
+static int startOfFramerateLimiter = 0;
+
 /*
 ================
 Com_QueueEvent
 
-A time of 0 will get the current time
+A time of 0 will get the current time normally
+OR the time of the end of last frame if we're after the framerate limiter but before game logic
+Input is polled between the framerate limiter and game logic; this time travel prevents the framerate limiter from increasing input lag
+
+"The end of the last frame" is the right place to timestamp inputs to because it's generally when the previous frame finishes rendering and is available to be sent to the screen.
+This will stop being true if threaded rendering is added, but if threading is added, input can be polled before the last frame even finishes rendering.
+Ideally, the input backend should use the right timestamps of each input event (NOT the current time when reading the event!)
+... but ioquake3's sdl input backend doesn't currently do that, and I'm not about to fix it.
+This is the right thing to do as long as your simulation is, as is correct, simulating up until the time when the current tick begins being simulated -- which quake 3 does.
+And timestamping the inputs to when the previous frame was displayed, instead of when the previous frame began thinking, is the "right thing to do" at extremely low framerates, so it's "probably" the right thing to do at high framerates too.
+
 Ptr should either be null, or point to a block of data that can
 be freed by the game later.
 ================
@@ -1966,7 +1976,8 @@ void Com_QueueEvent( int time, sysEventType_t type, int value, int value2, int p
 
 	if ( time == 0 )
 	{
-		time = Sys_Milliseconds();
+		// If the event timestamp generation is enabled, use that. Otherwise, use the current time.
+		time = startOfFramerateLimiter?startOfFramerateLimiter:Sys_Milliseconds();
 	}
 
 	ev->evTime = time;
@@ -1980,7 +1991,7 @@ void Com_QueueEvent( int time, sysEventType_t type, int value, int value2, int p
 /*
 ================
 Com_GetSystemEvent
-
+Returns the next event, or a null event (SE_NONE) with the current time
 ================
 */
 sysEvent_t Com_GetSystemEvent( void )
@@ -2015,7 +2026,7 @@ sysEvent_t Com_GetSystemEvent( void )
 		return eventQueue[ ( eventTail - 1 ) & MASK_QUEUED_EVENTS ];
 	}
 
-	// create an empty event to return
+	// Create an empty event and return it with the current time
 	memset( &ev, 0, sizeof( ev ) );
 	ev.evTime = Sys_Milliseconds();
 
@@ -2027,7 +2038,7 @@ sysEvent_t Com_GetSystemEvent( void )
 Com_GetRealEvent
 =================
 */
-sysEvent_t	Com_GetRealEvent( void ) {
+sysEvent_t Com_GetRealEvent( void ) {
 	int			r;
 	sysEvent_t	ev;
 
@@ -2073,10 +2084,12 @@ Com_InitPushEvent
 */
 void Com_InitPushEvent( void ) {
   // clear the static buffer array
-  // this requires SE_NONE to be accepted as a valid but NOP event
+  // this requires SE_NONE to be accepted as a valid but NOP event that indicates the end of the queue
   memset( com_pushedEvents, 0, sizeof(com_pushedEvents) );
   // reset counters while we are at it
-  // beware: GetEvent might still return an SE_NONE from the buffer
+  // beware: The pushed events buffer must never contain an SE_NONE event,
+  // or functions that require SE_NONE from GetEvent to indicate the end
+  // of the available events will behave erraneously.
   com_pushedEventsHead = 0;
   com_pushedEventsTail = 0;
 }
@@ -2118,11 +2131,13 @@ void Com_PushEvent( sysEvent_t *event ) {
 Com_GetEvent
 =================
 */
-sysEvent_t	Com_GetEvent( void ) {
+sysEvent_t Com_GetEvent( void ) {
+	// The pushed events queue must never have a meaningful SE_NONE event in it, so a pushed event won't break Com_EventLoop's loop
 	if ( com_pushedEventsHead > com_pushedEventsTail ) {
 		com_pushedEventsTail++;
 		return com_pushedEvents[ (com_pushedEventsTail-1) & (MAX_PUSHED_EVENTS-1) ];
 	}
+	// If there are no available pushed events, return a real event.
 	return Com_GetRealEvent();
 }
 
@@ -2154,8 +2169,7 @@ void Com_RunAndTimeServerPacket( netadr_t *evFrom, msg_t *buf ) {
 /*
 =================
 Com_EventLoop
-
-Returns last event time
+Returns the current time (roughly), unless an event queue contains a real SE_NONE, in which case who knows what it'll return?
 =================
 */
 int Com_EventLoop( void ) {
@@ -2231,7 +2245,6 @@ int Com_Milliseconds (void) {
 
 	// get events and push them until we get a null event with the current time
 	do {
-
 		ev = Com_GetRealEvent();
 		if ( ev.evType != SE_NONE ) {
 			Com_PushEvent( &ev );
@@ -3075,6 +3088,7 @@ double Com_DesiredWait( void ) {
 void Smart_Sleep( int minMsec )
 {
 	int	timeVal, timeValSV;
+	timeVal = Com_TimeVal(minMsec);
 	do
 	{
 		if(com_sv_running->integer)
@@ -3089,10 +3103,10 @@ void Smart_Sleep( int minMsec )
 		else
 			timeVal = Com_TimeVal(minMsec);
 		
-		if(com_busyWait->integer || timeVal < 1)
+		if(com_busyWait->integer)
 			NET_Sleep(0);
 		else
-			NET_Sleep(timeVal - 1);
+			NET_Sleep(timeVal);
 	} while(Com_TimeVal(minMsec));
 }
 
@@ -3104,6 +3118,8 @@ void Lim_Frame( void ) {
 	// Figure out how much time we want to wait
 	static double last_minMsec = -1;
 	double minMsec = Com_DesiredWait();
+	
+	int start = Sys_Milliseconds();
 	
 	if(dostart)
 	{
@@ -3123,11 +3139,11 @@ void Lim_Frame( void ) {
 		// If we haven't yet missed that timestamp, wait on it. Otherwise, reset.
 		if(WaitMilliseconds > 0 && minMsec == last_minMsec)
 		{
-			// I do not trust NET_Sleep to busywait the last couple ms+fraction correctly.
-			// If we miss network updates because of this, so be it.
-			int delayvalue = floor(WaitMilliseconds-1);
+			int delayvalue = (int)(WaitMilliseconds-1);
 			if(delayvalue < 0) delayvalue = 0;
+			// Do the sleepable portion while being able to wake up for events
 			Smart_Sleep(delayvalue);
+			// Busywait the remainder for maximum precision
 			while(Sys_Milliseconds() < TargetTime);
 			
 			lastend = TargetTime;
@@ -3149,8 +3165,9 @@ void Lim_Frame( void ) {
 			reference_time = Now;
 		}
 	}
-	
+
 	last_minMsec = minMsec;
+	startOfFramerateLimiter = start; // enable event timestamp generation override
 }
 
 
@@ -3174,6 +3191,8 @@ void Com_Frame( void ) {
 	if ( setjmp (abortframe) ) {
 		return;			// an ERR_DROP was thrown
 	}
+	
+	startOfFramerateLimiter = 0; // disable event timestamp generation override
 
 	timeBeforeFirstEvents =0;
 	timeBeforeServer =0;
@@ -3190,7 +3209,7 @@ void Com_Frame( void ) {
 	if ( com_speeds->integer ) {
 		timeBeforeFirstEvents = Sys_Milliseconds ();
 	}
-
+	
 	lastTime = com_frameTime;
 	com_frameTime = Com_EventLoop();
 	

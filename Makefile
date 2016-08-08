@@ -328,9 +328,11 @@ ifneq (,$(findstring "$(PLATFORM)", "linux" "gnu_kfreebsd" "kfreebsd-gnu" "gnu")
   OPTIMIZE = $(OPTIMIZEVM) -ffast-math
 
   ifeq ($(ARCH),x86_64)
-    OPTIMIZEVM = -O3
+    OPTIMIZEVM = -O3 -msse -msse2 -ftree-vectorize
     OPTIMIZE = $(OPTIMIZEVM) -ffast-math
     HAVE_VM_COMPILED = true
+    BASE_CFLAGS += -mfpmath=sse -msse -msse2 -ftree-vectorize
+    # All consumer x64 CPUs support sse2.
   else
   ifeq ($(ARCH),x86)
     OPTIMIZEVM = -O3 -march=i586
