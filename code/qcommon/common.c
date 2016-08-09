@@ -1934,23 +1934,10 @@ static sysEvent_t  eventQueue[ MAX_QUEUED_EVENTS ];
 static int         eventHead = 0;
 static int         eventTail = 0;
 
-static int startOfFramerateLimiter = 0;
-
 /*
 ================
 Com_QueueEvent
-
-A time of 0 will get the current time normally
-OR the time of the end of last frame if we're after the framerate limiter but before game logic
-Input is polled between the framerate limiter and game logic; this time travel prevents the framerate limiter from increasing input lag
-
-"The end of the last frame" is the right place to timestamp inputs to because it's generally when the previous frame finishes rendering and is available to be sent to the screen.
-This will stop being true if threaded rendering is added, but if threading is added, input can be polled before the last frame even finishes rendering.
-Ideally, the input backend should use the right timestamps of each input event (NOT the current time when reading the event!)
-... but ioquake3's sdl input backend doesn't currently do that, and I'm not about to fix it.
-This is the right thing to do as long as your simulation is, as is correct, simulating up until the time when the current tick begins being simulated -- which quake 3 does.
-And timestamping the inputs to when the previous frame was displayed, instead of when the previous frame began thinking, is the "right thing to do" at extremely low framerates, so it's "probably" the right thing to do at high framerates too.
-
+A time of 0 will get the current time.
 Ptr should either be null, or point to a block of data that can
 be freed by the game later.
 ================
@@ -1976,8 +1963,7 @@ void Com_QueueEvent( int time, sysEventType_t type, int value, int value2, int p
 
 	if ( time == 0 )
 	{
-		// If the event timestamp generation is enabled, use that. Otherwise, use the current time.
-		time = startOfFramerateLimiter?startOfFramerateLimiter:Sys_Milliseconds();
+		time = Sys_Milliseconds();
 	}
 
 	ev->evTime = time;
@@ -3119,8 +3105,6 @@ void Lim_Frame( void ) {
 	static double last_minMsec = -1;
 	double minMsec = Com_DesiredWait();
 	
-	int start = Sys_Milliseconds();
-	
 	if(dostart)
 	{
 		consecutive = 0;
@@ -3167,7 +3151,6 @@ void Lim_Frame( void ) {
 	}
 
 	last_minMsec = minMsec;
-	startOfFramerateLimiter = start; // enable event timestamp generation override
 }
 
 
@@ -3191,8 +3174,6 @@ void Com_Frame( void ) {
 	if ( setjmp (abortframe) ) {
 		return;			// an ERR_DROP was thrown
 	}
-	
-	startOfFramerateLimiter = 0; // disable event timestamp generation override
 
 	timeBeforeFirstEvents =0;
 	timeBeforeServer =0;

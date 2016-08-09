@@ -52,6 +52,14 @@ static int vidRestartTime = 0;
 
 static SDL_Window *SDL_window = NULL;
 
+// Used for giving the engine better (= unlagged) input timestamps
+// We give the engine the time we last polled inputs as the timestamp to the current inputs.
+// As long as the input backend doesn't have reliable timestamps, this is the right thing to do!
+// The engine simulates *the period from the last frame's beginning to the current frame's beginning* when it simulates the current frame.
+// It's not simulating "the next 1/60th or 1/125th" of a second. If you give it "now" as input timestamps, your inputs do not occur until the *next* simulated chunk of time.
+// Try it. com_maxfps 1, press "forward", have fun.
+static int lasttime = 0; // if 0, Com_QueueEvent will use the current time. This is for the first frame.
+
 #define CTRL(a) ((a)-'a'+1)
 
 /*
@@ -545,7 +553,7 @@ static void IN_JoyMove( void )
 				balldx *= 2;
 			if (abs(balldy) > 1)
 				balldy *= 2;
-			Com_QueueEvent( 0, SE_MOUSE, balldx, balldy, 0, NULL );
+			Com_QueueEvent( lasttime, SE_MOUSE, balldx, balldy, 0, NULL );
 		}
 	}
 
@@ -560,7 +568,7 @@ static void IN_JoyMove( void )
 			qboolean pressed = (SDL_JoystickGetButton(stick, i) != 0);
 			if (pressed != stick_state.buttons[i])
 			{
-				Com_QueueEvent( 0, SE_KEY, K_JOY1 + i, pressed, 0, NULL );
+				Com_QueueEvent( lasttime, SE_KEY, K_JOY1 + i, pressed, 0, NULL );
 				stick_state.buttons[i] = pressed;
 			}
 		}
@@ -585,32 +593,32 @@ static void IN_JoyMove( void )
 				// release event
 				switch( ((Uint8 *)&stick_state.oldhats)[i] ) {
 					case SDL_HAT_UP:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 0], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 0], qfalse, 0, NULL );
 						break;
 					case SDL_HAT_RIGHT:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 1], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 1], qfalse, 0, NULL );
 						break;
 					case SDL_HAT_DOWN:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 2], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 2], qfalse, 0, NULL );
 						break;
 					case SDL_HAT_LEFT:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 3], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 3], qfalse, 0, NULL );
 						break;
 					case SDL_HAT_RIGHTUP:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 0], qfalse, 0, NULL );
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 1], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 0], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 1], qfalse, 0, NULL );
 						break;
 					case SDL_HAT_RIGHTDOWN:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 2], qfalse, 0, NULL );
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 1], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 2], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 1], qfalse, 0, NULL );
 						break;
 					case SDL_HAT_LEFTUP:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 0], qfalse, 0, NULL );
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 3], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 0], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 3], qfalse, 0, NULL );
 						break;
 					case SDL_HAT_LEFTDOWN:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 2], qfalse, 0, NULL );
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 3], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 2], qfalse, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 3], qfalse, 0, NULL );
 						break;
 					default:
 						break;
@@ -618,32 +626,32 @@ static void IN_JoyMove( void )
 				// press event
 				switch( ((Uint8 *)&hats)[i] ) {
 					case SDL_HAT_UP:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 0], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 0], qtrue, 0, NULL );
 						break;
 					case SDL_HAT_RIGHT:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 1], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 1], qtrue, 0, NULL );
 						break;
 					case SDL_HAT_DOWN:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 2], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 2], qtrue, 0, NULL );
 						break;
 					case SDL_HAT_LEFT:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 3], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 3], qtrue, 0, NULL );
 						break;
 					case SDL_HAT_RIGHTUP:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 0], qtrue, 0, NULL );
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 1], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 0], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 1], qtrue, 0, NULL );
 						break;
 					case SDL_HAT_RIGHTDOWN:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 2], qtrue, 0, NULL );
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 1], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 2], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 1], qtrue, 0, NULL );
 						break;
 					case SDL_HAT_LEFTUP:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 0], qtrue, 0, NULL );
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 3], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 0], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 3], qtrue, 0, NULL );
 						break;
 					case SDL_HAT_LEFTDOWN:
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 2], qtrue, 0, NULL );
-						Com_QueueEvent( 0, SE_KEY, hat_keys[4*i + 3], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 2], qtrue, 0, NULL );
+						Com_QueueEvent( lasttime, SE_KEY, hat_keys[4*i + 3], qtrue, 0, NULL );
 						break;
 					default:
 						break;
@@ -671,7 +679,7 @@ static void IN_JoyMove( void )
 
 				if ( axis != stick_state.oldaaxes[i] )
 				{
-					Com_QueueEvent( 0, SE_JOYSTICK_AXIS, i, axis, 0, NULL );
+					Com_QueueEvent( lasttime, SE_JOYSTICK_AXIS, i, axis, 0, NULL );
 					stick_state.oldaaxes[i] = axis;
 				}
 			}
@@ -697,11 +705,11 @@ static void IN_JoyMove( void )
 	{
 		for( i = 0; i < 16; i++ ) {
 			if( ( axes & ( 1 << i ) ) && !( stick_state.oldaxes & ( 1 << i ) ) ) {
-				Com_QueueEvent( 0, SE_KEY, joy_keys[i], qtrue, 0, NULL );
+				Com_QueueEvent( lasttime, SE_KEY, joy_keys[i], qtrue, 0, NULL );
 			}
 
 			if( !( axes & ( 1 << i ) ) && ( stick_state.oldaxes & ( 1 << i ) ) ) {
-				Com_QueueEvent( 0, SE_KEY, joy_keys[i], qfalse, 0, NULL );
+				Com_QueueEvent( lasttime, SE_KEY, joy_keys[i], qfalse, 0, NULL );
 			}
 		}
 	}
@@ -722,7 +730,7 @@ static void IN_ProcessEvents( void )
 	static keyNum_t lastKeyDown = 0;
 
 	if( !SDL_WasInit( SDL_INIT_VIDEO ) )
-			return;
+		return;
 
 	while( SDL_PollEvent( &e ) )
 	{
@@ -733,19 +741,19 @@ static void IN_ProcessEvents( void )
 					break;
 
 				if( ( key = IN_TranslateSDLToQ3Key( &e.key.keysym, qtrue ) ) )
-					Com_QueueEvent( 0, SE_KEY, key, qtrue, 0, NULL );
+					Com_QueueEvent( lasttime, SE_KEY, key, qtrue, 0, NULL );
 
 				if( key == K_BACKSPACE )
-					Com_QueueEvent( 0, SE_CHAR, CTRL('h'), 0, 0, NULL );
+					Com_QueueEvent( lasttime, SE_CHAR, CTRL('h'), 0, 0, NULL );
 				else if( keys[K_CTRL].down && key >= 'a' && key <= 'z' )
-					Com_QueueEvent( 0, SE_CHAR, CTRL(key), 0, 0, NULL );
+					Com_QueueEvent( lasttime, SE_CHAR, CTRL(key), 0, 0, NULL );
 
 				lastKeyDown = key;
 				break;
 
 			case SDL_KEYUP:
 				if( ( key = IN_TranslateSDLToQ3Key( &e.key.keysym, qfalse ) ) )
-					Com_QueueEvent( 0, SE_KEY, key, qfalse, 0, NULL );
+					Com_QueueEvent( lasttime, SE_KEY, key, qfalse, 0, NULL );
 
 				lastKeyDown = 0;
 				break;
@@ -790,11 +798,11 @@ static void IN_ProcessEvents( void )
 						{
 							if( IN_IsConsoleKey( 0, utf32 ) )
 							{
-								Com_QueueEvent( 0, SE_KEY, K_CONSOLE, qtrue, 0, NULL );
-								Com_QueueEvent( 0, SE_KEY, K_CONSOLE, qfalse, 0, NULL );
+								Com_QueueEvent( lasttime, SE_KEY, K_CONSOLE, qtrue, 0, NULL );
+								Com_QueueEvent( lasttime, SE_KEY, K_CONSOLE, qfalse, 0, NULL );
 							}
 							else
-								Com_QueueEvent( 0, SE_CHAR, utf32, 0, 0, NULL );
+								Com_QueueEvent( lasttime, SE_CHAR, utf32, 0, 0, NULL );
 						}
 					}
 				}
@@ -805,7 +813,7 @@ static void IN_ProcessEvents( void )
 				{
 					if( !e.motion.xrel && !e.motion.yrel )
 						break;
-					Com_QueueEvent( 0, SE_MOUSE, e.motion.xrel, e.motion.yrel, 0, NULL );
+					Com_QueueEvent( lasttime, SE_MOUSE, e.motion.xrel, e.motion.yrel, 0, NULL );
 				}
 				break;
 
@@ -822,7 +830,7 @@ static void IN_ProcessEvents( void )
 						case SDL_BUTTON_X2:     b = K_MOUSE5;     break;
 						default:                b = K_AUX1 + ( e.button.button - SDL_BUTTON_X2 + 1 ) % 16; break;
 					}
-					Com_QueueEvent( 0, SE_KEY, b,
+					Com_QueueEvent( lasttime, SE_KEY, b,
 						( e.type == SDL_MOUSEBUTTONDOWN ? qtrue : qfalse ), 0, NULL );
 				}
 				break;
@@ -830,13 +838,13 @@ static void IN_ProcessEvents( void )
 			case SDL_MOUSEWHEEL:
 				if( e.wheel.y > 0 )
 				{
-					Com_QueueEvent( 0, SE_KEY, K_MWHEELUP, qtrue, 0, NULL );
-					Com_QueueEvent( 0, SE_KEY, K_MWHEELUP, qfalse, 0, NULL );
+					Com_QueueEvent( lasttime, SE_KEY, K_MWHEELUP, qtrue, 0, NULL );
+					Com_QueueEvent( lasttime, SE_KEY, K_MWHEELUP, qfalse, 0, NULL );
 				}
 				else if( e.wheel.y < 0 )
 				{
-					Com_QueueEvent( 0, SE_KEY, K_MWHEELDOWN, qtrue, 0, NULL );
-					Com_QueueEvent( 0, SE_KEY, K_MWHEELDOWN, qfalse, 0, NULL );
+					Com_QueueEvent( lasttime, SE_KEY, K_MWHEELDOWN, qtrue, 0, NULL );
+					Com_QueueEvent( lasttime, SE_KEY, K_MWHEELDOWN, qfalse, 0, NULL );
 				}
 				break;
 
@@ -899,6 +907,9 @@ void IN_Frame( void )
 {
 	qboolean loading;
 
+	// Get the timestamp to give the next frame's input events (not the ones we're gathering right now, though)
+	int start = Sys_Milliseconds();
+
 	IN_JoyMove( );
 
 	// If not DISCONNECTED (main menu) or ACTIVE (in game), we're loading
@@ -930,6 +941,9 @@ void IN_Frame( void )
 		vidRestartTime = 0;
 		Cbuf_AddText( "vid_restart\n" );
 	}
+
+	// Store the timestamp for the next frame's input events
+	lasttime = start; 
 }
 
 /*
