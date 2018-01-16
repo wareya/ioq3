@@ -3134,8 +3134,12 @@ int Lim_Frame( void ) {
 	double minMsec = Com_DesiredWait();
 	
 	int delta = 0;
-	int msecDesyncAllowed = 8;
-	int busywaitms = 0;
+	// for framerate limiter
+	int msecDesyncAllowed = 35;
+	// consecutive excess frame budget needed to turn framerate limiter back on (FIXME/TODO consecutive might be a bad idea)
+	int msecDesyncCooldown = 50;
+	// for delta
+	int msecDivergenceAllowed = 5;
 	
 	if(dostart)
 	{
@@ -3167,25 +3171,44 @@ int Lim_Frame( void ) {
 		// If we haven't yet missed that timestamp, wait on it. Otherwise, reset.
 		if(failed == 0 && WaitMilliseconds > 0)
 		{
-			// I do not trust NET_Sleep to busywait the last couple ms+fraction correctly.
-			// If we miss network updates because of this, so be it.
-			int delayvalue = floor(WaitMilliseconds-busywaitms);
+			int delayvalue = floor(WaitMilliseconds);
 			if(delayvalue < 0) delayvalue = 0;
 			Smart_Sleep(delayvalue);
-			//while(Sys_Milliseconds() < TargetTime);
 			
-			delta = ((int)TargetTime) - ((int)lastend);
-			
-			lastend = TargetTime;
+			int want_delta = ((int)TargetTime) - ((int)lastend);
+			int real_delta = ((int)Now) - ((int)lastend);
+			int delta_diff = want_delta - real_delta;
+			if(delta_diff < 0) delta_diff = -delta_diff;
+			if(delta_diff > msecDivergenceAllowed)
+			{
+				delta = real_delta;
+				lastend = Now;
+			}
+			else
+			{
+				delta = want_delta;
+				lastend = TargetTime;
+			}
 		}
 		// we're out of sync but haven't lost a full frametime of phase, pretend it's not happening
 		else if(failed == 0 && Now < TargetTime + msecDesyncAllowed)
 		{
 			Smart_Sleep(0);
 			
-			delta = ((int)TargetTime) - ((int)lastend);
-			
-			lastend = TargetTime;
+			int want_delta = ((int)TargetTime) - ((int)lastend);
+			int real_delta = ((int)Now) - ((int)lastend);
+			int delta_diff = want_delta - real_delta;
+			if(delta_diff < 0) delta_diff = -delta_diff;
+			if(delta_diff > msecDivergenceAllowed)
+			{
+				delta = real_delta;
+				lastend = Now;
+			}
+			else
+			{
+				delta = want_delta;
+				lastend = TargetTime;
+			}
 		}
 		// we've fallen a full frame behind our framelimiter's ideal in terms of phase, reset
 		else if(failed == 0)
@@ -3198,29 +3221,30 @@ int Lim_Frame( void ) {
 			consecutive = 0;
 			reference_time = Now;
 			
-			failed = msecDesyncAllowed;
+			failed = msecDesyncCooldown;
 		}
 		// we have continued to miss the framerate limiter
 		else
 		{
 			Smart_Sleep(0);
 			
+			// handle state for temporarily disabling the framerate limiter when the limit failed to be hit
+			if(failed > 0)
+			{
+				if(WaitMilliseconds > 0) // if the framerate limiter is not currently failing to hit, slowly reset the failure thing
+					//failed -= WaitMilliseconds;
+					failed -= TargetTime-reference_time;
+				else // otherwise reset it to failure
+					failed = msecDesyncCooldown;
+			}
+			if(failed < 0)
+				failed = 0;
+			
 			delta = ((int)Now) - ((int)lastend);
 			
 			lastend = Now;
 			consecutive = 0;
 			reference_time = Now;
-			
-			// handle state for temporarily disabling the framerate limiter when the limit failed to be hit
-			if(failed > 0)
-			{
-				if(WaitMilliseconds > 0) // if the framerate limiter is not currently failing to hit, slowly reset the failure thing
-					failed -= WaitMilliseconds;
-				else // otherwise reset it to failure
-					failed = msecDesyncAllowed;
-			}
-			if(failed < 0)
-				failed = 0;
 		}
 	}
 	
