@@ -285,6 +285,9 @@ static	void R_LoadLightmaps( lump_t *l, lump_t *surfs ) {
 		if (ri.FS_FileExists(filename))
 			textureInternalFormat = GL_RGBA16;
 	}
+	
+	if (r_lightmapForceHDR->integer)
+		textureInternalFormat = GL_RGBA16;
 
 	if (r_mergeLightmaps->integer)
 	{
@@ -386,7 +389,10 @@ static	void R_LoadLightmaps( lump_t *l, lump_t *surfs ) {
 #endif
 					color[3] = 1.0f;
 
-					R_ColorShiftLightingFloats(color, color);
+					if (!r_lightmapForceHDR->integer)
+						R_ColorShiftLightingFloats(color, color);
+					else for(int i = 0; i < 4; i++)
+						color[i] /= 255.0;
 
 					ColorToRGB16(color, (uint16_t *)(&image[j * 8]));
 					((uint16_t *)(&image[j * 8]))[3] = 65535;
@@ -410,8 +416,11 @@ static	void R_LoadLightmaps( lump_t *l, lump_t *surfs ) {
 						color[2] = avg;
 					}
 					color[3] = 1.0f;
-
-					R_ColorShiftLightingFloats(color, color);
+					
+					if (!r_lightmapForceHDR->integer)
+						R_ColorShiftLightingFloats(color, color);
+					else for(int i = 0; i < 4; i++)
+						color[i] /= 255.0;
 
 					ColorToRGB16(color, (uint16_t *)(&image[j * 8]));
 					((uint16_t *)(&image[j * 8]))[3] = 65535;
@@ -447,8 +456,25 @@ static	void R_LoadLightmaps( lump_t *l, lump_t *surfs ) {
 					}
 					else
 					{
-						R_ColorShiftLightingBytes( &buf_p[j*3], &image[j*4] );
-						image[j*4+3] = 255;
+						if (r_lightmapForceHDR->integer)
+						{
+							vec4_t color;
+
+							color[0] = buf_p[j*3+0] / 255.0;
+							color[1] = buf_p[j*3+1] / 255.0;
+							color[2] = buf_p[j*3+2] / 255.0;
+							color[3] = 1.0;
+							
+							//R_ColorShiftLightingFloats(color, color);
+							
+							ColorToRGB16(color, (uint16_t *)(&image[j * 8]));
+							((uint16_t *)(&image[j * 8]))[3] = 65535;
+						}
+						else
+						{
+							R_ColorShiftLightingBytes( &buf_p[j*3], &image[j*4] );
+							image[j*4+3] = 255;
+						}
 					}
 				}
 			}
