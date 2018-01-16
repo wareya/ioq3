@@ -2591,6 +2591,11 @@ void CG_Player( centity_t *cent ) {
 
 	// add powerups floating behind the player
 	CG_PlayerPowerups( cent, &torso );
+
+//unlagged - client options
+	// add the bounding box (if cg_drawBBox is 1)
+	CG_AddBoundingBox( cent );
+//unlagged - client options
 }
 
 
