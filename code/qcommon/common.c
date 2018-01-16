@@ -64,6 +64,9 @@ cvar_t	*com_timescale;
 cvar_t	*com_fixedtime;
 cvar_t	*com_journal;
 cvar_t	*com_maxfps;
+cvar_t	*com_fpsAllowedDesync;
+cvar_t	*com_fpsCooldownDesync;
+cvar_t	*com_fpsAllowedDivergence;
 cvar_t	*com_altivec;
 cvar_t	*com_timedemo;
 cvar_t	*com_sv_running;
@@ -2757,6 +2760,10 @@ void Com_Init( char *commandLine ) {
 	com_altivec = Cvar_Get ("com_altivec", "1", CVAR_ARCHIVE);
 	com_maxfps = Cvar_Get ("com_maxfps", "85", CVAR_ARCHIVE);
 	com_blood = Cvar_Get ("com_blood", "1", CVAR_ARCHIVE);
+	
+	com_fpsAllowedDesync = Cvar_Get ("com_fpsAllowedDesync", "15", CVAR_ARCHIVE);
+	com_fpsCooldownDesync = Cvar_Get ("com_fpsCooldownDesync", "50", CVAR_ARCHIVE);
+	com_fpsAllowedDivergence = Cvar_Get ("com_fpsAllowedDivergence", "2", CVAR_ARCHIVE);
 
 	com_logfile = Cvar_Get ("logfile", "0", CVAR_TEMP );
 
@@ -3134,12 +3141,17 @@ int Lim_Frame( void ) {
 	double minMsec = Com_DesiredWait();
 	
 	int delta = 0;
+	
 	// for framerate limiter
-	int msecDesyncAllowed = 35;
+	//com_fpsAllowedDesync->integer
+	
 	// consecutive excess frame budget needed to turn framerate limiter back on (FIXME/TODO consecutive might be a bad idea)
-	int msecDesyncCooldown = 50;
+	//com_fpsCooldownDesync->integer
+	
 	// for delta
-	int msecDivergenceAllowed = 5;
+	//com_fpsAllowedDivergence->integer
+	
+	// the delta one has no cooldown
 	
 	if(dostart)
 	{
@@ -3175,14 +3187,16 @@ int Lim_Frame( void ) {
 			if(delayvalue < 0) delayvalue = 0;
 			Smart_Sleep(delayvalue);
 			
+			int freshNow = Sys_Milliseconds();
+			
 			int want_delta = ((int)TargetTime) - ((int)lastend);
-			int real_delta = ((int)Now) - ((int)lastend);
+			int real_delta = ((int)freshNow) - ((int)lastend);
 			int delta_diff = want_delta - real_delta;
 			if(delta_diff < 0) delta_diff = -delta_diff;
-			if(delta_diff > msecDivergenceAllowed)
+			if(delta_diff > com_fpsAllowedDivergence->integer)
 			{
 				delta = real_delta;
-				lastend = Now;
+				lastend = freshNow;
 			}
 			else
 			{
@@ -3191,7 +3205,7 @@ int Lim_Frame( void ) {
 			}
 		}
 		// we're out of sync but haven't lost a full frametime of phase, pretend it's not happening
-		else if(failed == 0 && Now < TargetTime + msecDesyncAllowed)
+		else if(failed == 0 && Now < TargetTime + com_fpsAllowedDesync->integer)
 		{
 			Smart_Sleep(0);
 			
@@ -3199,7 +3213,7 @@ int Lim_Frame( void ) {
 			int real_delta = ((int)Now) - ((int)lastend);
 			int delta_diff = want_delta - real_delta;
 			if(delta_diff < 0) delta_diff = -delta_diff;
-			if(delta_diff > msecDivergenceAllowed)
+			if(delta_diff > com_fpsAllowedDivergence->integer)
 			{
 				delta = real_delta;
 				lastend = Now;
@@ -3221,7 +3235,7 @@ int Lim_Frame( void ) {
 			consecutive = 0;
 			reference_time = Now;
 			
-			failed = msecDesyncCooldown;
+			failed = com_fpsCooldownDesync->integer;
 		}
 		// we have continued to miss the framerate limiter
 		else
@@ -3235,7 +3249,7 @@ int Lim_Frame( void ) {
 					//failed -= WaitMilliseconds;
 					failed -= TargetTime-reference_time;
 				else // otherwise reset it to failure
-					failed = msecDesyncCooldown;
+					failed = com_fpsCooldownDesync->integer;
 			}
 			if(failed < 0)
 				failed = 0;
