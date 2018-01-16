@@ -67,6 +67,7 @@ cvar_t	*com_maxfps;
 cvar_t	*com_fpsAllowedDesync;
 cvar_t	*com_fpsCooldownDesync;
 cvar_t	*com_fpsAllowedDivergence;
+cvar_t  *com_fpsOldLimiter;
 cvar_t	*com_altivec;
 cvar_t	*com_timedemo;
 cvar_t	*com_sv_running;
@@ -205,7 +206,7 @@ void QDECL Com_Printf( const char *fmt, ... ) {
 			struct tm *newtime;
 			time_t aclock;
 
-      opening_qconsole = qtrue;
+			opening_qconsole = qtrue;
 
 			time( &aclock );
 			newtime = localtime( &aclock );
@@ -229,7 +230,7 @@ void QDECL Com_Printf( const char *fmt, ... ) {
 				Cvar_SetValue("logfile", 0);
 			}
 
-      opening_qconsole = qfalse;
+			opening_qconsole = qfalse;
 		}
 		if ( logfile && FS_Initialized()) {
 			FS_Write(msg, strlen(msg), logfile);
@@ -1572,7 +1573,7 @@ void Com_InitHunkMemory( void ) {
 
 	if ( cv->integer < nMinAlloc ) {
 		s_hunkTotal = 1024 * 1024 * nMinAlloc;
-	    Com_Printf(pMsg, nMinAlloc, s_hunkTotal / (1024 * 1024));
+		Com_Printf(pMsg, nMinAlloc, s_hunkTotal / (1024 * 1024));
 	} else {
 		s_hunkTotal = cv->integer * 1024 * 1024;
 	}
@@ -2355,7 +2356,7 @@ void Com_Setenv_f(void)
 			Com_Printf("%s=%s\n", arg1, env);
 		else
 			Com_Printf("%s undefined\n", arg1);
-        }
+	}
 }
 
 /*
@@ -2764,6 +2765,7 @@ void Com_Init( char *commandLine ) {
 	com_fpsAllowedDesync = Cvar_Get ("com_fpsAllowedDesync", "15", CVAR_ARCHIVE);
 	com_fpsCooldownDesync = Cvar_Get ("com_fpsCooldownDesync", "50", CVAR_ARCHIVE);
 	com_fpsAllowedDivergence = Cvar_Get ("com_fpsAllowedDivergence", "2", CVAR_ARCHIVE);
+	com_fpsOldLimiter = Cvar_Get ("com_fpsOldLimiter", "0", CVAR_ARCHIVE | CVAR_LATCH );
 
 	com_logfile = Cvar_Get ("logfile", "0", CVAR_TEMP );
 
@@ -3153,6 +3155,9 @@ int Lim_Frame( void ) {
 	
 	// the delta one has no cooldown
 	
+	if(fabs(Sys_Milliseconds() - lastend) > 2000)
+		dostart = 1;
+	
 	if(dostart)
 	{
 		consecutive = 0;
@@ -3164,6 +3169,9 @@ int Lim_Frame( void ) {
 		delta = (int)minMsec;
 		if(delta == 0)
 			delta = 1;
+
+		failed = 0;
+		last_minMsec = -1;
 	}
 	else
 	{
@@ -3267,7 +3275,6 @@ int Lim_Frame( void ) {
 	return delta;
 }
 
-
 /*
 =================
 Com_Frame
@@ -3304,14 +3311,78 @@ void Com_Frame( void ) {
 		timeBeforeFirstEvents = Sys_Milliseconds ();
 	}
 
-	while((msec = Lim_Frame()) == 0);
+	if ( com_fpsOldLimiter->integer ) {
+		int		minMsec;
+		int		timeVal, timeValSV;
+		static int	lastTime = 0, bias = 0;
+		// Figure out how much time we have
+		if(!com_timedemo->integer)
+		{
+			if(com_dedicated->integer)
+				minMsec = SV_FrameMsec();
+			else
+			{
+				if(com_minimized->integer && com_maxfpsMinimized->integer > 0)
+					minMsec = 1000 / com_maxfpsMinimized->integer;
+				else if(com_unfocused->integer && com_maxfpsUnfocused->integer > 0)
+					minMsec = 1000 / com_maxfpsUnfocused->integer;
+				else if(com_maxfps->integer > 0)
+					minMsec = 1000 / com_maxfps->integer;
+				else
+					minMsec = 1;
+				
+				timeVal = com_frameTime - lastTime;
+				bias += timeVal - minMsec;
+				
+				if(bias > minMsec)
+					bias = minMsec;
+				
+				// Adjust minMsec if previous frame took too long to render so
+				// that framerate is stable at the requested value.
+				minMsec -= bias;
+			}
+		}
+		else
+			minMsec = 1;
 
-	IN_Frame();
+		do
+		{
+			if(com_sv_running->integer)
+			{
+				timeValSV = SV_SendQueuedPackets();
+				
+				timeVal = Com_TimeVal(minMsec);
+
+				if(timeValSV < timeVal)
+					timeVal = timeValSV;
+			}
+			else
+				timeVal = Com_TimeVal(minMsec);
+			
+			if(com_busyWait->integer || timeVal < 1)
+				NET_Sleep(0);
+			else
+				NET_Sleep(timeVal - 1);
+		} while(Com_TimeVal(minMsec));
+		
+		IN_Frame();
+
+		lastTime = com_frameTime;
+		com_frameTime = Com_EventLoop();
+		
+		msec = com_frameTime - lastTime;
+	} else {
 	
-	//com_frameTime = Com_EventLoop();
-	com_frameTime += msec;
-	Com_EventLoop();
+		while((msec = Lim_Frame()) == 0);
 
+		IN_Frame();
+		
+		//com_frameTime = Com_EventLoop();
+		Com_EventLoop();
+		com_frameTime += msec;
+	}
+
+	
 	Cbuf_Execute ();
 
 	if (com_altivec->modified)
