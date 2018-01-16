@@ -3311,7 +3311,7 @@ void Com_Frame( void ) {
 		timeBeforeFirstEvents = Sys_Milliseconds ();
 	}
 
-	if ( com_fpsOldLimiter->integer ) {
+	if ( com_dedicated->integer || com_fpsOldLimiter->integer ) {
 		int		minMsec;
 		int		timeVal, timeValSV;
 		static int	lastTime = 0, bias = 0;
@@ -3372,7 +3372,6 @@ void Com_Frame( void ) {
 		
 		msec = com_frameTime - lastTime;
 	} else {
-	
 		while((msec = Lim_Frame()) == 0);
 
 		IN_Frame();
