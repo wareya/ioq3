@@ -980,7 +980,7 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
 //unlagged - attack prediction #1
 	// if the entity is us, unlagged is on server-side, and we've got it on for the lightning gun
 	if ( (cent->currentState.number == cg.predictedPlayerState.clientNum) && cgs.delagHitscan &&
-			( cg_delag.integer & 1 || cg_delag.integer & 8 ) ) {
+		 ( cg_delag.integer & 1 || cg_delag.integer & 8 ) ) {
 		// always shoot straight forward from our current position
 		AngleVectors( cg.predictedPlayerState.viewangles, forward, NULL, NULL );
 		VectorCopy( cg.predictedPlayerState.origin, muzzlePoint );
@@ -999,7 +999,7 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
 //unlagged - true lightning
 
 		for (i = 0; i < 3; i++) {
-			float a = cent->lerpAngles[i] - cg.refdefViewAngles[i];
+			float a = cent->lerpAngles[i] - viewangles[i]; //unlagged: was cg.refdefViewAngles[i];
 			if (a > 180) {
 				a -= 360;
 			}
@@ -1007,7 +1007,7 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
 				a += 360;
 			}
 
-			angle[i] = cg.refdefViewAngles[i] + a * (1.0 - cg_trueLightning.value);
+            angle[i] = viewangles[i] /*unlagged: was cg.refdefViewAngles[i]*/ + a * (1.0 - cg_trueLightning.value);
 			if (angle[i] < 0) {
 				angle[i] += 360;
 			}
@@ -1357,13 +1357,82 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	if ( ps || cg.renderingThirdPerson ||
 		cent->currentState.number != cg.predictedPlayerState.clientNum ) {
 		// add lightning bolt
-		CG_LightningBolt( nonPredictedCent, flash.origin );
+		// unlagged - bugfix, see CG_AddFirstPersonLGEffects
+		if (!ps)
+			CG_LightningBolt( nonPredictedCent, flash.origin );
 
 		if ( weapon->flashDlightColor[0] || weapon->flashDlightColor[1] || weapon->flashDlightColor[2] ) {
 			trap_R_AddLightToScene( flash.origin, 300 + (rand()&31), weapon->flashDlightColor[0],
 				weapon->flashDlightColor[1], weapon->flashDlightColor[2] );
 		}
 	}
+}
+
+
+/*
+=============
+CG_AddFirstPersonLGEffects
+
+mostly duplicated from CG_AddPlayerWeapon but designed to not break the LG shaft. only makes the LG shaft.
+=============
+*/
+void CG_AddFirstPersonLGEffects( refEntity_t *parent, playerState_t *ps, centity_t *cent, int team ) {
+	refEntity_t	gun;
+	refEntity_t	flash;
+	vec3_t		angles;
+	weapon_t	weaponNum;
+	weaponInfo_t	*weapon;
+	orientation_t	lerped;
+	
+	if (!ps) return;
+
+	weaponNum = cent->currentState.weapon;
+	
+	if (weaponNum != WP_LIGHTNING) return;
+
+	//CG_RegisterWeapon( weaponNum );
+	weapon = &cg_weapons[weaponNum];
+
+	// add the weapon
+	memset( &gun, 0, sizeof( gun ) );
+
+	gun.hModel = weapon->weaponModel;
+	if (!gun.hModel) {
+		return;
+	}
+
+	trap_R_LerpTag(&lerped, parent->hModel, parent->oldframe, parent->frame,
+		1.0 - parent->backlerp, "tag_weapon");
+	VectorCopy(parent->origin, gun.origin);
+
+	VectorMA(gun.origin, lerped.origin[0], parent->axis[0], gun.origin);
+
+	// Make weapon appear left-handed for 2 and centered for 3
+	if(ps && cg_drawGun.integer == 2)
+		VectorMA(gun.origin, -lerped.origin[1], parent->axis[1], gun.origin);
+	else if(!ps || cg_drawGun.integer != 3)
+		VectorMA(gun.origin, lerped.origin[1], parent->axis[1], gun.origin);
+
+	VectorMA(gun.origin, lerped.origin[2], parent->axis[2], gun.origin);
+
+	MatrixMultiply(lerped.axis, ((refEntity_t *)parent)->axis, gun.axis);
+	gun.backlerp = parent->backlerp;
+
+	memset( &flash, 0, sizeof( flash ) );
+	VectorCopy( parent->lightingOrigin, flash.lightingOrigin );
+
+	flash.hModel = weapon->flashModel;
+	if (!flash.hModel) {
+		return;
+	}
+	angles[YAW] = 0;
+	angles[PITCH] = 0;
+	angles[ROLL] = crandom() * 10;
+	AnglesToAxis( angles, flash.axis );
+
+	CG_PositionRotatedEntityOnTag( &flash, &gun, weapon->weaponModel, "tag_flash");
+
+	CG_LightningBolt( &cg_entities[ps->clientNum], flash.origin );
 }
 
 /*
@@ -1398,9 +1467,8 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 
 	// allow the gun to be completely removed
 	if ( !cg_drawGun.integer ) {
-		vec3_t		origin;
-
 		if ( cg.predictedPlayerState.eFlags & EF_FIRING ) {
+			vec3_t		origin;
 			// special hack for lightning gun...
 			VectorCopy( cg.refdef.vieworg, origin );
 			VectorMA( origin, -8, cg.refdef.viewaxis[2], origin );
@@ -1454,6 +1522,9 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 
 	// add everything onto the hand
 	CG_AddPlayerWeapon( &hand, ps, &cg.predictedPlayerEntity, ps->persistant[PERS_TEAM] );
+	
+	if ( cg.predictedPlayerState.eFlags & EF_FIRING )
+		CG_AddFirstPersonLGEffects( &hand, ps, &cg.predictedPlayerEntity, ps->persistant[PERS_TEAM] );
 }
 
 /*
@@ -1714,9 +1785,10 @@ void CG_FireWeapon( centity_t *cent ) {
 	// append the flash to the weapon model
 	cent->muzzleFlashTime = cg.time;
 
-	// lightning gun only does this this on initial press
+	// lightning gun skips everything else if it just started
 	if ( ent->weapon == WP_LIGHTNING ) {
 		if ( cent->pe.lightningFiring ) {
+			CG_PredictWeaponEffects( cent );
 			return;
 		}
 	}

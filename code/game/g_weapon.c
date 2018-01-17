@@ -97,6 +97,7 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 		tent->s.otherEntityNum = traceEnt->s.number;
 		tent->s.eventParm = DirToByte( tr.plane.normal );
 		tent->s.weapon = ent->s.weapon;
+        tent->s.clientNum = -1;
 	}
 
 	if ( !traceEnt->takedamage) {
@@ -751,9 +752,20 @@ void Weapon_LightningFire( gentity_t *ent ) {
 			tent->s.otherEntityNum = traceEnt->s.number;
 			tent->s.eventParm = DirToByte( tr.plane.normal );
 			tent->s.weapon = ent->s.weapon;
+//unlagged - attack prediction #2
+			// we need the client number to determine whether or not to
+			// suppress this event
+			tent->s.clientNum = ent->s.clientNum;
+//unlagged - attack prediction #2
 		} else if ( !( tr.surfaceFlags & SURF_NOIMPACT ) ) {
 			tent = G_TempEntity( tr.endpos, EV_MISSILE_MISS );
 			tent->s.eventParm = DirToByte( tr.plane.normal );
+//unlagged - attack prediction #2
+			// we need the client number to determine whether or not to
+			// suppress this event
+			tent->s.weapon = ent->s.weapon;
+			tent->s.clientNum = ent->s.clientNum;
+//unlagged - attack prediction #2
 		}
 
 		break;

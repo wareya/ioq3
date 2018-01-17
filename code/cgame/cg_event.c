@@ -965,13 +965,31 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_MISSILE_HIT:
 		DEBUGNAME("EV_MISSILE_HIT");
 		ByteToDir( es->eventParm, dir );
-		CG_MissileHitPlayer( es->weapon, position, dir, es->otherEntityNum );
+//unlagged - attack prediction #2
+		// if the client is us, unlagged is on server-side, and we've got it client-side
+		if ( es->clientNum == cg.predictedPlayerState.clientNum && es->weapon == WP_LIGHTNING &&
+				cgs.delagHitscan && (cg_delag.integer & 1 || cg_delag.integer & 16) ) {
+			// do nothing, because it was already predicted
+			//Com_Printf("Ignoring lightning impact event\n");
+		}
+		else
+			CG_MissileHitPlayer( es->weapon, position, dir, es->otherEntityNum );
+//unlagged - attack prediction #2
 		break;
 
 	case EV_MISSILE_MISS:
 		DEBUGNAME("EV_MISSILE_MISS");
 		ByteToDir( es->eventParm, dir );
-		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT );
+//unlagged - attack prediction #2
+		// if the client is us, unlagged is on server-side, and we've got it client-side
+		if ( es->clientNum == cg.predictedPlayerState.clientNum && es->weapon == WP_LIGHTNING &&
+				cgs.delagHitscan && (cg_delag.integer & 1 || cg_delag.integer & 16) ) {
+			// do nothing, because it was already predicted
+			//Com_Printf("Ignoring lightning impact event\n");
+		}
+		else
+			CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT );
+//unlagged - attack prediction #2
 		break;
 
 	case EV_MISSILE_MISS_METAL:

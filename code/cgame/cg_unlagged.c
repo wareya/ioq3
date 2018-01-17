@@ -221,6 +221,73 @@ void CG_PredictWeaponEffects( centity_t *cent ) {
 			//Com_Printf( "Predicted bullet\n" );
 		}
 	}
+	// was it a lightning gun attack?
+	else if ( ent->weapon == WP_LIGHTNING ) {
+		// do we have it on for the lightning gun?
+		if ( cg_delag.integer & 1 || cg_delag.integer & 2 ) {
+			
+			trace_t		tr;
+			vec3_t		end, origin, path;
+		#ifdef MISSIONPACK
+			//vec3_t impactpoint, bouncedir;
+		#endif
+			//gentity_t	*traceEnt, *tent;
+			int			i, passent;
+			qboolean flesh;
+			
+			VectorCopy( muzzlePoint, origin );
+			VectorCopy( forward, path );
+
+			//passent = ent->s.number;
+			passent = cg.predictedPlayerState.clientNum;
+			
+			for (i = 0; i < 10; i++) {
+				VectorMA( origin, LIGHTNING_RANGE, path, end );
+
+				CG_Trace( &tr, muzzlePoint, NULL, NULL, end, passent, MASK_SHOT );
+
+				if ( tr.entityNum == ENTITYNUM_NONE ) {
+					return;
+				}
+
+				// FIXME: need to do something about this, don't know if we can use g_entities on the client or if it's right to
+				/*
+				traceEnt = &g_entities[ tr.entityNum ];
+				if ( traceEnt->takedamage) {
+		#ifdef MISSIONPACK
+					if ( traceEnt->client && traceEnt->client->invulnerabilityTime > level.time ) {
+						if (G_InvulnerabilityEffect( traceEnt, path, tr.endpos, impactpoint, bouncedir )) {
+							G_BounceProjectile( origin, impactpoint, bouncedir, end );
+							VectorCopy( impactpoint, origin );
+							VectorSubtract( end, impactpoint, path );
+							VectorNormalize(path);
+							// the player can hit him/herself with the bounced lightning
+							passent = ENTITYNUM_NONE;
+						} else {
+							VectorCopy( tr.endpos, origin );
+							passent = traceEnt->s.number;
+						}
+						continue;
+					}
+		#endif
+				}
+				*/
+				
+				// do bullet impact
+				
+				if ( tr.entityNum < MAX_CLIENTS )
+					flesh = qtrue;
+				else
+					flesh = qfalse;
+				
+				if ( !flesh && !( tr.surfaceFlags & SURF_NOIMPACT ) )
+					CG_MissileHitWall( ent->weapon, cg.predictedPlayerState.clientNum, tr.endpos, tr.plane.normal, IMPACTSOUND_DEFAULT );
+
+				break;
+			}
+			
+		}
+	}
 }
 
 /*
