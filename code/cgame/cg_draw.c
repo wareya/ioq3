@@ -1593,7 +1593,7 @@ static void CG_DrawDisconnect( void ) {
 	const char		*s;
 	int			w;
 
-	// draw the phone jack if we are completely past our buffers
+	// if we are completely past our buffers...
 	cmdNum = trap_GetCurrentCmdNumber() - CMD_BACKUP + 1;
 	trap_GetUserCmd( cmdNum, &cmd );
 	if ( cmd.serverTime <= cg.snap->ps.commandTime
@@ -1619,6 +1619,7 @@ static void CG_DrawDisconnect( void ) {
 	y = 480 - 48;
 #endif
 
+	// draw the phone jack
 	CG_DrawPic( x, y, 48, 48, trap_R_RegisterShader("gfx/2d/net.tga" ) );
 }
 
