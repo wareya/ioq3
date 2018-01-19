@@ -919,7 +919,7 @@ void ClientThink_real( gentity_t *ent ) {
 	pretend_pmove_msec = pmove_msec.integer;
 
 	if(pmove_snapmode.value == 1)
-        pretend_pmove_msec = 8;
+		pretend_pmove_msec = 8;
 
 	if ( pmove_fixed.integer || client->pers.pmoveFixed ) {
 		ucmd->serverTime = ((ucmd->serverTime + pretend_pmove_msec-1) / pretend_pmove_msec) * pretend_pmove_msec;

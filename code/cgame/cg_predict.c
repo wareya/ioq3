@@ -500,7 +500,7 @@ void CG_PredictPlayerState( void ) {
 	pretend_pmove_msec = pmove_msec.integer;
 
 	if(pmove_snapmode.value == 1)
-        pretend_pmove_msec = 8;
+		pretend_pmove_msec = 8;
 
 	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
 	cg_pmove.pmove_msec = pretend_pmove_msec;

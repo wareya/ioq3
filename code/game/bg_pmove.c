@@ -1438,8 +1438,29 @@ static void PM_Footsteps( void ) {
 	}
 
 	// check for footstep / splash sounds
-	old = pm->ps->bobCycle;
-	pm->ps->bobCycle = (int)( old + bobmove * pml.msec ) & 255;
+	{
+		// always bob even if delta is very low - need to dither it, basically
+		float raw_increase;
+		int seed, increase;
+		float rand;
+		seed = pm->ps->commandTime;
+		rand = 0;
+		raw_increase = bobmove * pml.msec;
+		if(pml.msec < 8)
+		{
+			rand = Q_random(&seed);
+			increase = (int)floor(raw_increase);
+			if(rand < raw_increase - (float)increase)
+				increase += 1;
+		}
+		else
+		{
+			increase = (int)round(raw_increase);
+		}
+
+		old = pm->ps->bobCycle;
+		pm->ps->bobCycle = ((int)( old + increase )) & 255;
+	}
 
 	// if we just crossed a cycle boundary, play an appropriate footstep event
 	if ( ( ( old + 64 ) ^ ( pm->ps->bobCycle + 64 ) ) & 128 ) {
