@@ -410,11 +410,12 @@ to ease the jerk.
 =================
 */
 void CG_PredictPlayerState( void ) {
-	int			cmdNum, current;
+	int				cmdNum, current;
+	int				pretend_pmove_msec;
 	playerState_t	oldPlayerState;
-	qboolean	moved;
-	usercmd_t	oldestCmd;
-	usercmd_t	latestCmd;
+	qboolean		moved;
+	usercmd_t		oldestCmd;
+	usercmd_t		latestCmd;
 
 	cg.hyperspace = qfalse;	// will be set if touching a trigger_teleport
 
@@ -495,9 +496,14 @@ void CG_PredictPlayerState( void ) {
 		trap_Cvar_Set("pmove_msec", "50");
 		trap_Cvar_Update(&pmove_msec);
 	}
+	
+	pretend_pmove_msec = pmove_msec.integer;
+
+	if(pmove_snapmode.value == 1)
+        pretend_pmove_msec = 8;
 
 	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
-	cg_pmove.pmove_msec = pmove_msec.integer;
+	cg_pmove.pmove_msec = pretend_pmove_msec;
 	
     cg_pmove.pmove_snapmode = pmove_snapmode.value;
     cg_pmove.pmove_accel = pmove_accel.value;
@@ -585,7 +591,7 @@ void CG_PredictPlayerState( void ) {
 		cg_pmove.gauntletHit = qfalse;
 
 		if ( cg_pmove.pmove_fixed ) {
-			cg_pmove.cmd.serverTime = ((cg_pmove.cmd.serverTime + pmove_msec.integer-1) / pmove_msec.integer) * pmove_msec.integer;
+			cg_pmove.cmd.serverTime = ((cg_pmove.cmd.serverTime + pretend_pmove_msec-1) / pretend_pmove_msec) * pretend_pmove_msec;
 		}
 
 		Pmove (&cg_pmove);

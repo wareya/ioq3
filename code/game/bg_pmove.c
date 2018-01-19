@@ -36,7 +36,7 @@ float	pm_stopspeed = 100.0f;
 float	pm_duckScale = 0.25f;
 float	pm_swimScale = 0.50f;
 
-int		pm_snapmode = 0; // 0: none (fixes movement, breaks some jumps); 1: old
+int		pm_snapmode = 0; // 0: none (fixes movement, breaks some jumps); 1: use snapping, if pmove_fixed then force it to use 8ms deltas instead of whatever pmove_msec is
 float	pm_accel = 10.0;
 float	pm_airaccel = 1.0;
 float	pm_qwairaccel = 70.0;
