@@ -290,15 +290,16 @@ static void CG_OffsetThirdPersonView( void ) {
 }
 
 
-// this causes a compiler bug on mac MrC compiler
+// smooth stairstepping is bugged, dummy it out until I figure out what's wrong
 static void CG_StepOffset( void ) {
-	int		timeDelta;
+	int			timeDelta;
+	static int	steptime = 0;
 	
 	// smooth out stair climbing
 	timeDelta = cg.time - cg.stepTime;
-	if ( timeDelta < STEP_TIME ) {
+	if ( timeDelta < steptime ) {
 		cg.refdef.vieworg[2] -= cg.stepChange 
-			* (STEP_TIME - timeDelta) / STEP_TIME;
+			* (steptime - timeDelta) / steptime;
 	}
 }
 

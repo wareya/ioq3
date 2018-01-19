@@ -31,12 +31,18 @@ pmove_t		*pm;
 pml_t		pml;
 
 // movement parameters
+
 float	pm_stopspeed = 100.0f;
 float	pm_duckScale = 0.25f;
 float	pm_swimScale = 0.50f;
 
-float	pm_accelerate = 10.0f;
-float	pm_airaccelerate = 1.0f;
+int		pm_snapmode = 0; // 0: none (fixes movement, breaks some jumps); 1: old
+float	pm_accel = 10.0;
+float	pm_airaccel = 1.0;
+float	pm_qwairaccel = 70.0;
+float	pm_qwairspeed = 30.0;
+int		pm_overbouncefix = 1;
+
 float	pm_wateraccelerate = 4.0f;
 float	pm_flyaccelerate = 8.0f;
 
@@ -148,6 +154,10 @@ void PM_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce ) {
 	
 	backoff = DotProduct (in, normal);
 	
+	if(pm_overbouncefix)
+		if(fabs(VectorLength(in) + backoff) < 0.001)
+			backoff = 0;
+	
 	if ( backoff < 0 ) {
 		backoff *= overbounce;
 	} else {
@@ -238,7 +248,21 @@ Handles user intended acceleration
 */
 static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
 #if 1
-	// q2 style
+	float		addspeed, accelspeed, currentspeed;
+
+	currentspeed = DotProduct (pm->ps->velocity, wishdir);
+	addspeed = wishspeed - currentspeed;
+	if (addspeed <= 0) {
+		return;
+	}
+	accelspeed = accel*pml.frametime*wishspeed;
+	if (accelspeed > addspeed) {
+		accelspeed = addspeed;
+	}
+	
+	VectorMA( pm->ps->velocity, accelspeed, wishdir, pm->ps->velocity );
+	
+#elif 1
 	int			i;
 	float		addspeed, accelspeed, currentspeed;
 
@@ -253,8 +277,9 @@ static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
 	}
 	
 	for (i=0 ; i<3 ; i++) {
-		pm->ps->velocity[i] += accelspeed*wishdir[i];	
+		pm->ps->velocity[i] += accelspeed*wishdir[i];
 	}
+	
 #else
 	// proper way (avoids strafe jump maxspeed bug), but feels bad
 	vec3_t		wishVelocity;
@@ -286,7 +311,7 @@ This allows the clients to use axial -127 to 127 values for all directions
 without getting a sqrt(2) distortion in speed.
 ============
 */
-static float PM_CmdScale( usercmd_t *cmd ) {
+static float PM_CmdScale( usercmd_t *cmd, qboolean ignoreup ) {
 	int		max;
 	float	total;
 	float	scale;
@@ -295,7 +320,7 @@ static float PM_CmdScale( usercmd_t *cmd ) {
 	if ( abs( cmd->rightmove ) > max ) {
 		max = abs( cmd->rightmove );
 	}
-	if ( abs( cmd->upmove ) > max ) {
+	if ( !ignoreup && abs( cmd->upmove ) > max ) {
 		max = abs( cmd->upmove );
 	}
 	if ( !max ) {
@@ -303,7 +328,7 @@ static float PM_CmdScale( usercmd_t *cmd ) {
 	}
 
 	total = sqrt( cmd->forwardmove * cmd->forwardmove
-		+ cmd->rightmove * cmd->rightmove + cmd->upmove * cmd->upmove );
+		+ cmd->rightmove * cmd->rightmove + (ignoreup?0:(cmd->upmove * cmd->upmove)) );
 	scale = (float)pm->ps->speed * max / ( 127.0 * total );
 
 	return scale;
@@ -367,8 +392,6 @@ static qboolean PM_CheckJump( void ) {
 
 	// must wait for jump to be released
 	if ( pm->ps->pm_flags & PMF_JUMP_HELD ) {
-		// clear upmove so cmdscale doesn't lower running speed
-		pm->cmd.upmove = 0;
 		return qfalse;
 	}
 
@@ -495,7 +518,7 @@ static void PM_WaterMove( void ) {
 #endif
 	PM_Friction ();
 
-	scale = PM_CmdScale( &pm->cmd );
+	scale = PM_CmdScale( &pm->cmd, qfalse );
 	//
 	// user intentions
 	//
@@ -566,7 +589,7 @@ static void PM_FlyMove( void ) {
 	// normal slowdown
 	PM_Friction ();
 
-	scale = PM_CmdScale( &pm->cmd );
+	scale = PM_CmdScale( &pm->cmd, qfalse );
 	//
 	// user intentions
 	//
@@ -604,6 +627,7 @@ static void PM_AirMove( void ) {
 	vec3_t		wishdir;
 	float		wishspeed;
 	float		scale;
+	float		accel;
 	usercmd_t	cmd;
 
 	PM_Friction();
@@ -612,7 +636,6 @@ static void PM_AirMove( void ) {
 	smove = pm->cmd.rightmove;
 
 	cmd = pm->cmd;
-	scale = PM_CmdScale( &cmd );
 
 	// set the movementDir so clients can rotate the legs for strafing
 	PM_SetMovementDir();
@@ -627,13 +650,25 @@ static void PM_AirMove( void ) {
 		wishvel[i] = pml.forward[i]*fmove + pml.right[i]*smove;
 	}
 	wishvel[2] = 0;
+	
+	// holding l/r, qw style
+	if ( fmove == 0 && smove != 0 )
+	{
+		scale = pm_qwairspeed/127.0; // we have an axial movement so we don't need PM_CmdScale
+		accel = pm_qwairaccel;
+	}
+	// vq3
+	else
+	{
+		scale = PM_CmdScale( &cmd, qtrue );
+		accel = pm_airaccel;
+	}
 
 	VectorCopy (wishvel, wishdir);
 	wishspeed = VectorNormalize(wishdir);
 	wishspeed *= scale;
 
-	// not on ground, so little effect on velocity
-	PM_Accelerate (wishdir, wishspeed, pm_airaccelerate);
+	PM_Accelerate (wishdir, wishspeed, accel);
 
 	// we may have a ground plane that is very steep, even
 	// though we don't have a groundentity
@@ -654,6 +689,7 @@ static void PM_AirMove( void ) {
 #endif
 
 	PM_StepSlideMove ( qtrue );
+	//PM_SlideMove ( qtrue );
 }
 
 /*
@@ -722,7 +758,7 @@ static void PM_WalkMove( void ) {
 	smove = pm->cmd.rightmove;
 
 	cmd = pm->cmd;
-	scale = PM_CmdScale( &cmd );
+	scale = PM_CmdScale( &cmd, qtrue );
 
 	// set the movementDir so clients can rotate the legs for strafing
 	PM_SetMovementDir();
@@ -769,9 +805,9 @@ static void PM_WalkMove( void ) {
 	// when a player gets hit, they temporarily lose
 	// full control, which allows them to be moved a bit
 	if ( ( pml.groundTrace.surfaceFlags & SURF_SLICK ) || pm->ps->pm_flags & PMF_TIME_KNOCKBACK ) {
-		accelerate = pm_airaccelerate;
+		accelerate = pm_airaccel;
 	} else {
-		accelerate = pm_accelerate;
+		accelerate = pm_accel;
 	}
 
 	PM_Accelerate (wishdir, wishspeed, accelerate);
@@ -874,7 +910,7 @@ static void PM_NoclipMove( void ) {
 	}
 
 	// accelerate
-	scale = PM_CmdScale( &pm->cmd );
+	scale = PM_CmdScale( &pm->cmd, qfalse );
 
 	fmove = pm->cmd.forwardmove;
 	smove = pm->cmd.rightmove;
@@ -887,7 +923,7 @@ static void PM_NoclipMove( void ) {
 	wishspeed = VectorNormalize(wishdir);
 	wishspeed *= scale;
 
-	PM_Accelerate( wishdir, wishspeed, pm_accelerate );
+	PM_Accelerate( wishdir, wishspeed, pm_accel );
 
 	// move
 	VectorMA (pm->ps->origin, pml.frametime, pm->ps->velocity, pm->ps->origin);
@@ -980,6 +1016,7 @@ static void PM_CrashLand( void ) {
 
 	// SURF_NODAMAGE is used for bounce pads where you don't ever
 	// want to take damage or play a crunch sound
+	// FIXME: this is buggy, figure out what's wrong
 	if ( !(pml.groundTrace.surfaceFlags & SURF_NODAMAGE) )  {
 		if ( delta > 60 ) {
 			PM_AddEvent( EV_FALL_FAR );
@@ -1830,6 +1867,7 @@ PmoveSingle
 
 ================
 */
+
 void trap_SnapVector( float *v );
 
 void PmoveSingle (pmove_t *pmove) {
@@ -2011,7 +2049,10 @@ void PmoveSingle (pmove_t *pmove) {
 	PM_WaterEvents();
 
 	// snap some parts of playerstate to save network bandwidth
-	trap_SnapVector( pm->ps->velocity );
+	if(pm_snapmode == 1)
+		trap_SnapVector( pm->ps->velocity );
+	//else if(pm_snapmode == 2)
+	//	pm->ps->velocity[2] = round(pm->ps->velocity[2]);
 }
 
 
@@ -2024,6 +2065,13 @@ Can be called by either the server or the client
 */
 void Pmove (pmove_t *pmove) {
 	int			finalTime;
+	
+	pm_snapmode = pmove->pmove_snapmode;
+	pm_accel = pmove->pmove_accel;
+	pm_airaccel = pmove->pmove_airaccel;
+	pm_qwairaccel = pmove->pmove_qwairaccel;
+	pm_qwairspeed = pmove->pmove_qwairspeed;
+	pm_overbouncefix = pmove->pmove_overbouncefix;
 
 	finalTime = pmove->cmd.serverTime;
 
@@ -2036,7 +2084,7 @@ void Pmove (pmove_t *pmove) {
 	}
 
 	pmove->ps->pmove_framecount = (pmove->ps->pmove_framecount+1) & ((1<<PS_PMOVEFRAMECOUNTBITS)-1);
-
+	
 	// chop the move up if it is too long, to prevent framerate
 	// dependent behavior
 	while ( pmove->ps->commandTime != finalTime ) {

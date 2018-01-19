@@ -144,6 +144,7 @@ vmCvar_t	cg_thirdPersonRange;
 vmCvar_t	cg_thirdPersonAngle;
 vmCvar_t	cg_lagometer;
 vmCvar_t	cg_drawAttacker;
+vmCvar_t	cg_drawSpeed;
 vmCvar_t	cg_synchronousClients;
 vmCvar_t 	cg_teamChatTime;
 vmCvar_t 	cg_teamChatHeight;
@@ -169,9 +170,15 @@ vmCvar_t 	cg_scorePlum;
 //vmCvar_t 	cg_smoothClients;
 //unlagged - smooth clients #2
 vmCvar_t	pmove_fixed;
-//vmCvar_t	cg_pmove_fixed;
 vmCvar_t	pmove_msec;
-vmCvar_t	cg_pmove_msec;
+
+vmCvar_t	pmove_snapmode;
+vmCvar_t	pmove_accel;
+vmCvar_t	pmove_airaccel;
+vmCvar_t	pmove_qwairaccel;
+vmCvar_t	pmove_qwairspeed;
+vmCvar_t	pmove_overbouncefix;
+
 vmCvar_t	cg_cameraMode;
 vmCvar_t	cg_cameraOrbit;
 vmCvar_t	cg_cameraOrbitDelay;
@@ -241,6 +248,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawIcons, "cg_drawIcons", "1", CVAR_ARCHIVE  },
 	{ &cg_drawAmmoWarning, "cg_drawAmmoWarning", "1", CVAR_ARCHIVE  },
 	{ &cg_drawAttacker, "cg_drawAttacker", "1", CVAR_ARCHIVE  },
+	{ &cg_drawSpeed, "cg_drawSpeed", "1", CVAR_ARCHIVE},
 	{ &cg_drawCrosshair, "cg_drawCrosshair", "4", CVAR_ARCHIVE },
 	{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
 	{ &cg_drawRewards, "cg_drawRewards", "1", CVAR_ARCHIVE },
@@ -329,7 +337,15 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_cameraMode, "com_cameraMode", "0", CVAR_CHEAT},
 
 	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO},
-	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO},
+	{ &pmove_msec, "pmove_msec", "1", CVAR_SYSTEMINFO},
+	
+	{ &pmove_snapmode, "pmove_snapmode", "0", CVAR_SYSTEMINFO},
+	{ &pmove_accel, "pmove_accel", "10.0", CVAR_SYSTEMINFO},
+	{ &pmove_airaccel, "pmove_airaccel", "1.0", CVAR_SYSTEMINFO},
+	{ &pmove_qwairaccel, "pmove_qwairaccel", "70.0", CVAR_SYSTEMINFO},
+	{ &pmove_qwairspeed, "pmove_qwairspeed", "30.0", CVAR_SYSTEMINFO},
+	{ &pmove_overbouncefix, "pmove_overbouncefix", "1.0", CVAR_SYSTEMINFO},
+	
 #ifdef MISSIONPACK
 	{ &cg_smallFont, "ui_smallFont", "0.25", CVAR_ARCHIVE},
 	{ &cg_bigFont, "ui_bigFont", "0.4", CVAR_ARCHIVE},
@@ -345,7 +361,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawBBox, "cg_drawBBox", "0", CVAR_CHEAT },
 	{ &cg_cmdTimeNudge, "cg_cmdTimeNudge", "0", CVAR_ARCHIVE | CVAR_USERINFO },
 	// this will be automagically copied from the server
-	{ &sv_fps, "sv_fps", "20", 0 },
+	{ &sv_fps, "sv_fps", "20", CVAR_SYSTEMINFO },
 	{ &cg_projectileNudge, "cg_projectileNudge", "0", CVAR_ARCHIVE },
 	{ &cg_optimizePrediction, "cg_optimizePrediction", "1", CVAR_ARCHIVE },
 	{ &cl_timeNudge, "cl_timeNudge", "0", CVAR_ARCHIVE },
@@ -354,7 +370,6 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_plOut, "cg_plOut", "0", CVAR_USERINFO | CVAR_CHEAT },
 //unlagged - client options
 	{ &cg_trueLightning, "cg_trueLightning", "0.0", CVAR_ARCHIVE}
-//	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 };
 
 static int  cvarTableSize = ARRAY_LEN( cvarTable );

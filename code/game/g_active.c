@@ -336,6 +336,16 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
 		pm.tracemask = MASK_PLAYERSOLID & ~CONTENTS_BODY;	// spectators can fly through bodies
 		pm.trace = trap_Trace;
 		pm.pointcontents = trap_PointContents;
+		
+		pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
+		pm.pmove_msec = pmove_msec.integer;
+
+		pm.pmove_snapmode = pmove_snapmode.value;
+		pm.pmove_accel = pmove_accel.value;
+		pm.pmove_airaccel = pmove_airaccel.value;
+		pm.pmove_qwairaccel = pmove_qwairaccel.value;
+		pm.pmove_qwairspeed = pmove_qwairspeed.value;
+		pm.pmove_overbouncefix = pmove_overbouncefix.value;
 
 		// perform a pmove
 		Pmove (&pm);
@@ -896,12 +906,12 @@ void ClientThink_real( gentity_t *ent ) {
 		msec = 200;
 	}
 
-	if ( pmove_msec.integer < 8 ) {
-		trap_Cvar_Set("pmove_msec", "8");
+	if ( pmove_msec.integer < 1 ) { // 1000fps
+		trap_Cvar_Set("pmove_msec", "1");
 		trap_Cvar_Update(&pmove_msec);
 	}
-	else if (pmove_msec.integer > 33) {
-		trap_Cvar_Set("pmove_msec", "33");
+	else if (pmove_msec.integer > 50) { // 20fps
+		trap_Cvar_Set("pmove_msec", "50");
 		trap_Cvar_Update(&pmove_msec);
 	}
 
@@ -946,7 +956,10 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_NORMAL;
 	}
 
-	client->ps.gravity = g_gravity.value;
+	if(pmove_snapmode.value == 1)
+		client->ps.gravity = g_gravity.value;
+	else
+		client->ps.gravity = g_gravity.value*0.9375; // emulate effective gravity decrease of 125fps delta - 6.0 per 8ms tick vs 6.4 per 8ms tick
 
 	// set speed
 	client->ps.speed = g_speed.value;
@@ -1030,6 +1043,13 @@ void ClientThink_real( gentity_t *ent ) {
 	pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
 	pm.pmove_msec = pmove_msec.integer;
 
+	pm.pmove_snapmode = pmove_snapmode.value;
+	pm.pmove_accel = pmove_accel.value;
+	pm.pmove_airaccel = pmove_airaccel.value;
+	pm.pmove_qwairaccel = pmove_qwairaccel.value;
+	pm.pmove_qwairspeed = pmove_qwairspeed.value;
+	pm.pmove_overbouncefix = pmove_overbouncefix.value;
+	
 	VectorCopy( client->ps.origin, client->oldOrigin );
 
 #ifdef MISSIONPACK

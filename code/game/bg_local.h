@@ -61,10 +61,11 @@ extern	float	pm_stopspeed;
 extern	float	pm_duckScale;
 extern	float	pm_swimScale;
 
-extern	float	pm_accelerate;
-extern	float	pm_airaccelerate;
-extern	float	pm_wateraccelerate;
-extern	float	pm_flyaccelerate;
+extern  int 	pm_snapstyle;
+extern  float	pm_accel;
+extern  float	pm_airaccel;
+extern  float	pm_qwairaccel;
+extern  float	pm_qwairspeed;
 
 extern	float	pm_friction;
 extern	float	pm_waterfriction;

@@ -58,6 +58,8 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 	vec3_t		endVelocity;
 	vec3_t		endClipVelocity;
 	
+	//float		startVertVelocity = pm->ps->velocity[2];
+	
 	numbumps = 4;
 
 	VectorCopy (pm->ps->velocity, primal_velocity);
@@ -69,8 +71,7 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 		primal_velocity[2] = endVelocity[2];
 		if ( pml.groundPlane ) {
 			// slide along the ground plane
-			PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, 
-				pm->ps->velocity, OVERCLIP );
+			PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
 		}
 	}
 
@@ -107,8 +108,8 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 			VectorCopy (trace.endpos, pm->ps->origin);
 		}
 
-		if (trace.fraction == 1) {
-			 break;		// moved the entire distance
+		if (trace.fraction == 1){//&& trace.entityNum != ENTITYNUM_NONE) { // might need this as a fix later, who knows
+			break;		// moved the entire distance
 		}
 
 		// save entity for contact
@@ -226,6 +227,10 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 	if ( gravity ) {
 		VectorCopy( endVelocity, pm->ps->velocity );
 	}
+	
+	//if(pm->ps->velocity[2] + startVertVelocity < 1 && startVertVelocity > 1)
+	//if(startVertVelocity != 0 && startVertVelocity*pm->ps->velocity[2] < -0.0)
+	//	Com_Printf("start %i end %i\n", (int)startVertVelocity, (int)pm->ps->velocity[2]);
 
 	// don't change velocity if in a timer (FIXME: is this correct?)
 	if ( pm->ps->pm_time ) {
@@ -262,10 +267,12 @@ void PM_StepSlideMove( qboolean gravity ) {
 	pm->trace (&trace, start_o, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	VectorSet(up, 0, 0, 1);
 	// never step up when you still have up velocity
+	/*
 	if ( pm->ps->velocity[2] > 0 && (trace.fraction == 1.0 ||
 										DotProduct(trace.plane.normal, up) < 0.7)) {
 		return;
 	}
+	*/
 
 	//VectorCopy (pm->ps->origin, down_o);
 	//VectorCopy (pm->ps->velocity, down_v);

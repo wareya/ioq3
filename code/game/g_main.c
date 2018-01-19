@@ -32,7 +32,7 @@ typedef struct {
 	int			cvarFlags;
 	int			modificationCount;  // for tracking changes
 	qboolean	trackChange;	    // track this variable, and announce if changed
-  qboolean teamShader;        // track and if changed, update shader state
+	qboolean teamShader;        // track and if changed, update shader state
 } cvarTable_t;
 
 gentity_t		g_entities[MAX_GENTITIES];
@@ -49,7 +49,15 @@ vmCvar_t	g_needpass;
 vmCvar_t	g_maxclients;
 vmCvar_t	g_maxGameClients;
 vmCvar_t	g_dedicated;
+
 vmCvar_t	g_speed;
+
+vmCvar_t	g_snapstyle;
+vmCvar_t	g_accel;
+vmCvar_t	g_airaccel;
+vmCvar_t	g_qwairaccel;
+vmCvar_t	g_qwairspeed;
+
 vmCvar_t	g_gravity;
 vmCvar_t	g_cheats;
 vmCvar_t	g_knockback;
@@ -79,6 +87,14 @@ vmCvar_t	g_filterBan;
 vmCvar_t	g_smoothClients;
 vmCvar_t	pmove_fixed;
 vmCvar_t	pmove_msec;
+
+vmCvar_t	pmove_snapmode;
+vmCvar_t	pmove_accel;
+vmCvar_t	pmove_airaccel;
+vmCvar_t	pmove_qwairaccel;
+vmCvar_t	pmove_qwairspeed;
+vmCvar_t	pmove_overbouncefix;
+
 vmCvar_t	g_rankings;
 vmCvar_t	g_listEntity;
 vmCvar_t	g_localTeamPref;
@@ -146,6 +162,13 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_dedicated, "dedicated", "0", 0, 0, qfalse  },
 
 	{ &g_speed, "g_speed", "320", 0, 0, qtrue  },
+	
+	{ &g_snapstyle, "g_snapstyle", "2", 0, 0, qtrue  },
+	{ &g_accel, "g_accel", "10", 0, 0, qtrue  },
+	{ &g_airaccel, "g_airaccel", "1", 0, 0, qtrue  },
+	{ &g_qwairaccel, "g_qwairaccel", "70", 0, 0, qtrue  },
+	{ &g_qwairspeed, "g_qwairspeed", "30", 0, 0, qtrue  },
+	
 	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue  },
 	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue  },
 	{ &g_quadfactor, "g_quadfactor", "3", 0, 0, qtrue  },
@@ -182,7 +205,14 @@ static cvarTable_t		gameCvarTable[] = {
 #endif
 	{ &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse},
 	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse},
-	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &pmove_msec, "pmove_msec", "1", CVAR_SYSTEMINFO, 0, qfalse},
+	
+	{ &pmove_snapmode, "pmove_snapmode", "0", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &pmove_accel, "pmove_accel", "10.0", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &pmove_airaccel, "pmove_airaccel", "1.0", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &pmove_qwairaccel, "pmove_qwairaccel", "70.0", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &pmove_qwairspeed, "pmove_qwairspeed", "30.0", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &pmove_overbouncefix, "pmove_overbouncefix", "1", CVAR_SYSTEMINFO, 0, qfalse},
 
 //unlagged - server options
 	{ &g_delagHitscan, "g_delagHitscan", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },

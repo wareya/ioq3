@@ -41,7 +41,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define DAMAGE_TIME			500
 #define	LAND_DEFLECT_TIME	150
 #define	LAND_RETURN_TIME	300
-#define	STEP_TIME			200
+#define	STEP_TIME			0
 #define	DUCK_TIME			100
 #define	PAIN_TWITCH_TIME	200
 #define	WEAPON_SELECT_TIME	1400
@@ -1144,6 +1144,7 @@ extern	vmCvar_t		cg_thirdPersonAngle;
 extern	vmCvar_t		cg_thirdPerson;
 extern	vmCvar_t		cg_lagometer;
 extern	vmCvar_t		cg_drawAttacker;
+extern	vmCvar_t		cg_drawSpeed;
 extern	vmCvar_t		cg_synchronousClients;
 extern	vmCvar_t		cg_teamChatTime;
 extern	vmCvar_t		cg_teamChatHeight;
@@ -1167,7 +1168,14 @@ extern  vmCvar_t		cg_scorePlum;
 //unlagged - smooth clients #2
 extern	vmCvar_t		pmove_fixed;
 extern	vmCvar_t		pmove_msec;
-//extern	vmCvar_t		cg_pmove_fixed;
+
+extern	vmCvar_t		pmove_snapmode;
+extern	vmCvar_t		pmove_accel;
+extern	vmCvar_t		pmove_airaccel;
+extern	vmCvar_t		pmove_qwairaccel;
+extern	vmCvar_t		pmove_qwairspeed;
+extern	vmCvar_t		pmove_overbouncefix;
+
 extern	vmCvar_t		cg_cameraOrbit;
 extern	vmCvar_t		cg_cameraOrbitDelay;
 extern	vmCvar_t		cg_timescaleFadeEnd;

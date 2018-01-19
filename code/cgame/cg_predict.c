@@ -487,17 +487,24 @@ void CG_PredictPlayerState( void ) {
 		cg.physicsTime = cg.snap->serverTime;
 	}
 
-	if ( pmove_msec.integer < 8 ) {
-		trap_Cvar_Set("pmove_msec", "8");
+	if ( pmove_msec.integer < 1 ) { // 1000fps
+		trap_Cvar_Set("pmove_msec", "1");
 		trap_Cvar_Update(&pmove_msec);
 	}
-	else if (pmove_msec.integer > 33) {
-		trap_Cvar_Set("pmove_msec", "33");
+	else if (pmove_msec.integer > 50) { // 20fps
+		trap_Cvar_Set("pmove_msec", "50");
 		trap_Cvar_Update(&pmove_msec);
 	}
 
 	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
 	cg_pmove.pmove_msec = pmove_msec.integer;
+	
+    cg_pmove.pmove_snapmode = pmove_snapmode.value;
+    cg_pmove.pmove_accel = pmove_accel.value;
+    cg_pmove.pmove_airaccel = pmove_airaccel.value;
+    cg_pmove.pmove_qwairaccel = pmove_qwairaccel.value;
+    cg_pmove.pmove_qwairspeed = pmove_qwairspeed.value;
+    cg_pmove.pmove_overbouncefix = pmove_overbouncefix.value;
 
 	// run cmds
 	moved = qfalse;

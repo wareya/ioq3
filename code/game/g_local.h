@@ -791,7 +791,9 @@ extern	vmCvar_t	g_friendlyFire;
 extern	vmCvar_t	g_password;
 extern	vmCvar_t	g_needpass;
 extern	vmCvar_t	g_gravity;
+
 extern	vmCvar_t	g_speed;
+
 extern	vmCvar_t	g_knockback;
 extern	vmCvar_t	g_quadfactor;
 extern	vmCvar_t	g_forcerespawn;
@@ -821,6 +823,14 @@ extern	vmCvar_t	g_blueteam;
 extern	vmCvar_t	g_smoothClients;
 extern	vmCvar_t	pmove_fixed;
 extern	vmCvar_t	pmove_msec;
+
+extern	vmCvar_t	pmove_snapmode;
+extern	vmCvar_t	pmove_accel;
+extern	vmCvar_t	pmove_airaccel;
+extern	vmCvar_t	pmove_qwairaccel;
+extern	vmCvar_t	pmove_qwairspeed;
+extern	vmCvar_t	pmove_overbouncefix;
+
 extern	vmCvar_t	g_rankings;
 extern	vmCvar_t	g_enableDust;
 extern	vmCvar_t	g_enableBreath;

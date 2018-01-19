@@ -706,6 +706,102 @@ static float CG_DrawAttacker( float y ) {
 }
 
 /*
+================
+CG_DrawSpeedMeter
+
+Very simple, but with added flags to control how to handle the vertical part of velocity.
+
+Cribbed from OpenArena. Under the same GPL license. Don't know whose original work it is.
+================
+ */
+static float CG_DrawSpeedMeter(float y) {
+	char *s;
+	int w;
+	vec_t *vel;
+	int speed;
+	
+	static float POSITIONS[128];
+	static int POSITIONS_INIT = 0;
+	static int POSITION_CURSOR = 0;
+	
+	if(!POSITIONS_INIT)
+		memset(POSITIONS, 0, sizeof(POSITIONS));
+	
+	POSITIONS_INIT = 1;
+
+	// speed meter can get in the way of the scoreboard
+	if (cg.scoreBoardShowing) {
+		return y;
+	}
+	
+	// show vertical peak vertical position
+	if(cg_drawSpeed.integer & 32)
+	{
+		char *s;
+		int i, w;
+		
+		s = va("%iupmove", !!(cg.snap->ps.pm_flags & PMF_JUMP_HELD));
+
+		w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
+		
+		CG_DrawBigString(635 - w, y + 2, s, 1.0f);
+		y += BIGCHAR_HEIGHT + 4;
+	}
+	
+	// show vertical peak vertical position
+	if(cg_drawSpeed.integer & 16)
+	{
+		char *s;
+		int i, loc, w;
+		float highest;
+		POSITIONS[POSITION_CURSOR] = cg.snap->ps.origin[2];
+		POSITION_CURSOR = (POSITION_CURSOR+1)%128;
+		
+		highest = POSITIONS[0];
+		for(i = 1; i < 128; i++)
+		{
+			if(POSITIONS[i] > highest)
+				highest = POSITIONS[i];
+		}
+		
+		loc = (int)highest;
+		
+		s = va("%ipeak", loc);
+
+		w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
+		
+		CG_DrawBigString(635 - w, y + 2, s, 1.0f);
+		y += BIGCHAR_HEIGHT + 4;
+	}
+	
+	vel = cg.snap->ps.velocity;
+	if(cg_drawSpeed.integer & 8)
+		speed = vel[2];
+	else if(cg_drawSpeed.integer & 4)
+		speed = sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
+	else // default: ignore vertical component of velocity
+		speed = sqrt(vel[0] * vel[0] + vel[1] * vel[1]);
+
+	s = va("%iups", speed);
+
+	w = CG_DrawStrlen(s) * BIGCHAR_WIDTH;
+
+	if ((cg_drawSpeed.integer&3) == 1) {
+		// top right-hand corner of screen
+		CG_DrawBigString(635 - w, y + 2, s, 1.0f);
+		return y + BIGCHAR_HEIGHT + 4;
+	} else if ((cg_drawSpeed.integer&3) == 2) {
+		// bottom right-hand corner of screen
+		CG_DrawBigString(635 - w, 475 - BIGCHAR_HEIGHT - 80 + 2, s, 1.0f);
+		return y;
+	} else {
+		// center of screen
+		CG_DrawBigString(320 - w / 2, 300, s, 1.0f);
+		return y;
+	}
+}
+
+/*
 ==================
 CG_DrawSnapshot
 ==================
@@ -994,7 +1090,10 @@ static void CG_DrawUpperRight(stereoFrame_t stereoFrame)
 		y = CG_DrawTimer( y );
 	}
 	if ( cg_drawAttacker.integer ) {
-		CG_DrawAttacker( y );
+		y = CG_DrawAttacker( y );
+	}
+	if (cg_drawSpeed.integer) {
+		y = CG_DrawSpeedMeter(y);
 	}
 
 }
