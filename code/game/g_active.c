@@ -1049,12 +1049,13 @@ void ClientThink_real( gentity_t *ent ) {
 	pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
 	pm.pmove_msec = pretend_pmove_msec;
 
-	pm.pmove_snapmode = pmove_snapmode.value;
+	pm.pmove_snapmode = pmove_snapmode.integer;
 	pm.pmove_accel = pmove_accel.value;
 	pm.pmove_airaccel = pmove_airaccel.value;
 	pm.pmove_qwairaccel = pmove_qwairaccel.value;
 	pm.pmove_qwairspeed = pmove_qwairspeed.value;
-	pm.pmove_overbouncefix = pmove_overbouncefix.value;
+	pm.pmove_overbouncefix = pmove_overbouncefix.integer;
+	pm.pmove_flags = pmove_flags.integer;
 	
 	VectorCopy( client->ps.origin, client->oldOrigin );
 

@@ -51,7 +51,7 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 	vec3_t		primal_velocity;
 	vec3_t		clipVelocity;
 	int			i, j, k;
-	trace_t	trace;
+	trace_t		trace;
 	vec3_t		end;
 	float		time_left;
 	float		into;
@@ -108,7 +108,8 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 			VectorCopy (trace.endpos, pm->ps->origin);
 		}
 
-		if (trace.fraction == 1){//&& trace.entityNum != ENTITYNUM_NONE) { // might need this as a fix later, who knows
+		if (trace.fraction == 1) {
+			//Com_Printf("fulldist %f %f %f\n", pm->ps->velocity[0], pm->ps->velocity[1], pm->ps->velocity[2]);
 			break;		// moved the entire distance
 		}
 
@@ -233,7 +234,7 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 	//	Com_Printf("start %i end %i\n", (int)startVertVelocity, (int)pm->ps->velocity[2]);
 
 	// don't change velocity if in a timer (FIXME: is this correct?)
-	if ( pm->ps->pm_time ) {
+	if ( pm->ps->pm_time && !(pm->ps->pm_flags & PMF_TIME_LAND)) { // Turns out it's not "correct for all timers". It still might not be correct at all.
 		VectorCopy( primal_velocity, pm->ps->velocity );
 	}
 
@@ -266,13 +267,13 @@ void PM_StepSlideMove( qboolean gravity ) {
 	down[2] -= STEPSIZE;
 	pm->trace (&trace, start_o, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	VectorSet(up, 0, 0, 1);
+	
 	// never step up when you still have up velocity
-	/*
-	if ( pm->ps->velocity[2] > 0 && (trace.fraction == 1.0 ||
-										DotProduct(trace.plane.normal, up) < 0.7)) {
+	// TODO: make alt skip threshold a flag
+	if ( pm->ps->velocity[2] > 200 && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7) ) { // value 200 is a guess, CPMA appears to use something larger than 0
+		//Com_Printf("Skipping stepping %d\n", c_pmove);
 		return;
 	}
-	*/
 
 	//VectorCopy (pm->ps->origin, down_o);
 	//VectorCopy (pm->ps->velocity, down_v);
@@ -303,7 +304,7 @@ void PM_StepSlideMove( qboolean gravity ) {
 	if ( !trace.allsolid ) {
 		VectorCopy (trace.endpos, pm->ps->origin);
 	}
-	if ( trace.fraction < 1.0 && pm->ps->velocity[2] < 200.0f) { // don't clip velocity if our vertical speed is too fast upwards
+	if (trace.fraction < 1.0) {
 		PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
 	}
 

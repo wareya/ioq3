@@ -505,12 +505,13 @@ void CG_PredictPlayerState( void ) {
 	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
 	cg_pmove.pmove_msec = pretend_pmove_msec;
 	
-    cg_pmove.pmove_snapmode = pmove_snapmode.value;
+    cg_pmove.pmove_snapmode = pmove_snapmode.integer;
     cg_pmove.pmove_accel = pmove_accel.value;
     cg_pmove.pmove_airaccel = pmove_airaccel.value;
     cg_pmove.pmove_qwairaccel = pmove_qwairaccel.value;
     cg_pmove.pmove_qwairspeed = pmove_qwairspeed.value;
-    cg_pmove.pmove_overbouncefix = pmove_overbouncefix.value;
+    cg_pmove.pmove_overbouncefix = pmove_overbouncefix.integer;
+	cg_pmove.pmove_flags = pmove_flags.integer;
 
 	// run cmds
 	moved = qfalse;

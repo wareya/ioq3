@@ -32,16 +32,26 @@ pml_t		pml;
 
 // movement parameters
 
+enum {
+	PMFV_QWAIR = 1,
+	PMFV_FWDBUNNY = 2, // not yet implemented
+	PMFV_RAMPJUMP = 4,
+	PMFV_ACCELBUFF = 8,
+	PMFV_AIRDEACCELBOOST = 16 // needed for speed to stabilize when turning at 40yawspeed/8ms in the air
+};
+
 float	pm_stopspeed = 100.0f;
 float	pm_duckScale = 0.25f;
 float	pm_swimScale = 0.50f;
 
 int		pm_snapmode = 0; // 0: none (fixes movement, breaks some jumps); 1: use snapping, if pmove_fixed then force it to use 8ms deltas instead of whatever pmove_msec is
-float	pm_accel = 10.0;
+float	pm_accel = 10.0; // note: CPM style is 15, we multiply to it
 float	pm_airaccel = 1.0;
 float	pm_qwairaccel = 70.0;
 float	pm_qwairspeed = 30.0;
 int		pm_overbouncefix = 1;
+int		pm_flags = 31;
+const float pm_airdecelerate_boost = 2; // needed to behave like CPMA
 
 float	pm_wateraccelerate = 4.0f;
 float	pm_flyaccelerate = 8.0f;
@@ -400,7 +410,19 @@ static qboolean PM_CheckJump( void ) {
 	pm->ps->pm_flags |= PMF_JUMP_HELD;
 
 	pm->ps->groundEntityNum = ENTITYNUM_NONE;
-	pm->ps->velocity[2] = JUMP_VELOCITY;
+	{
+		float velocity = JUMP_VELOCITY;
+		if(pm->ps->pm_flags & PMF_TIME_LAND)
+			velocity = velocity*4/3;
+		
+		if((pm_flags & PMFV_RAMPJUMP) && pm->ps->velocity[2] > 0)
+			pm->ps->velocity[2] += velocity;
+		else
+			pm->ps->velocity[2] = velocity;
+		
+		pm->ps->pm_flags |= PMF_TIME_LAND;
+		pm->ps->pm_time = 400;
+	}
 	PM_AddEvent( EV_JUMP );
 
 	if ( pm->cmd.forwardmove >= 0 ) {
@@ -619,7 +641,8 @@ PM_AirMove
 
 ===================
 */
-static void PM_AirMove( void ) {
+static void PM_GroundTrace( qboolean );
+static void PM_AirMove( qboolean justJumped ) {
 	int			i;
 	vec3_t		wishvel;
 	float		fmove, smove;
@@ -651,7 +674,7 @@ static void PM_AirMove( void ) {
 	wishvel[2] = 0;
 	
 	// holding l/r, qw style
-	if ( fmove == 0 && smove != 0 )
+	if ( (pm_flags & PMFV_QWAIR) && fmove == 0 && smove != 0 )
 	{
 		scale = pm_qwairspeed/127.0; // we have an axial movement so we don't need PM_CmdScale
 		accel = pm_qwairaccel;
@@ -661,6 +684,8 @@ static void PM_AirMove( void ) {
 	{
 		scale = PM_CmdScale( &cmd, qtrue );
 		accel = pm_airaccel;
+		if((pm_flags & PMFV_AIRDEACCELBOOST) && DotProduct(pm->ps->velocity, wishvel) < 0)
+			accel *= pm_airdecelerate_boost;
 	}
 
 	VectorCopy (wishvel, wishdir);
@@ -688,6 +713,17 @@ static void PM_AirMove( void ) {
 
 	PM_StepSlideMove ( qtrue );
 	//PM_SlideMove ( qtrue );
+	
+	// we might need to jump from a ramp we got mapped to (i.e. adding this fixes bunnyhopping up ramps)
+	if(!justJumped)
+	{
+		PM_GroundTrace(qtrue); // set groundent
+		if ( pml.groundPlane )
+			PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
+		if ( pml.walking )
+			PM_CheckJump();
+		pml.walking = qfalse;
+	}
 }
 
 /*
@@ -745,7 +781,7 @@ static void PM_WalkMove( void ) {
 		if ( pm->waterlevel > 1 ) {
 			PM_WaterMove();
 		} else {
-			PM_AirMove();
+			PM_AirMove(qtrue);
 		}
 		return;
 	}
@@ -824,13 +860,19 @@ static void PM_WalkMove( void ) {
 
 	// slide along the ground plane
 
+	//FIXME: CPMA doesn't seem to do this the same way vq3 or we do
 	if(pm_overbouncefix)
 	{
-		float tempdot;
+		float tempdot, tempdot2;
+		vec3_t tempvec;
 		tempdot = DotProduct (pm->ps->velocity, pml.groundTrace.plane.normal);
+		VectorCopy(pm->ps->velocity, tempvec);
+		VectorNormalize(tempvec);
+		tempdot2 = DotProduct (pm->ps->velocity, pml.groundTrace.plane.normal);
+		
 		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
-		// don't decrease velocity when going up or down a slope - make sure it's actually a slope
-		if(fabs(vel + tempdot) > 0.001f)
+		// don't decrease velocity when going up or down a slope - make sure it's actually a slope relative to us
+		if(tempdot2 > 0.98f || fabs(vel + tempdot) > 0.001f)
 		{
 			VectorNormalize(pm->ps->velocity);
 			VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
@@ -838,8 +880,8 @@ static void PM_WalkMove( void ) {
 		// don't maintain tiny amounts of vertical velocity when standing on flat ground
 		else if(fabs(pm->ps->velocity[2]) < 0.001f && (pml.groundTrace.plane.normal[2] == -1.0f || pml.groundTrace.plane.normal[2] == 1.0f))
 			pm->ps->velocity[2] = 0;
-		else
-			Com_Printf("Skipping slope velocity fix - doesn't look like a slope\n");
+		//else if(vel > 0.0f)
+			//Com_Printf("Skipping slope velocity fix - doesn't look like a slope\n");
 	}
 	else
 	{
@@ -1163,7 +1205,7 @@ static void PM_GroundTraceMissed( void ) {
 PM_GroundTrace
 =============
 */
-static void PM_GroundTrace( void ) {
+static void PM_GroundTrace( qboolean kickoffOverride ) {
 	vec3_t		point;
 	trace_t		trace;
 
@@ -1189,7 +1231,7 @@ static void PM_GroundTrace( void ) {
 	}
 
 	// check if getting thrown off the ground
-	if ( pm->ps->velocity[2] > 0 && DotProduct( pm->ps->velocity, trace.plane.normal ) > 10 ) {
+	if ( !kickoffOverride && pm->ps->velocity[2] > 0 && DotProduct( pm->ps->velocity, trace.plane.normal ) > 10 ) {
 		if ( pm->debugLevel ) {
 			Com_Printf("%i:kickoff\n", c_pmove);
 		}
@@ -1240,11 +1282,12 @@ static void PM_GroundTrace( void ) {
 		PM_CrashLand();
 
 		// don't do landing time if we were just going down a slope
-		if ( pml.previous_velocity[2] < -200 ) {
+		// this was never implemented and is not desired. repurpusing it for the cpm "double" jump (the ledge boost thing)
+		//if ( pml.previous_velocity[2] < -200 ) {
 			// don't allow another jump for a little while
-			pm->ps->pm_flags |= PMF_TIME_LAND;
-			pm->ps->pm_time = 250;
-		}
+			//pm->ps->pm_flags |= PMF_TIME_LAND;
+			//pm->ps->pm_time = 250;
+		//}
 	}
 
 	pm->ps->groundEntityNum = trace.entityNum;
@@ -2041,7 +2084,7 @@ void PmoveSingle (pmove_t *pmove) {
 	PM_CheckDuck ();
 
 	// set groundentity
-	PM_GroundTrace();
+	PM_GroundTrace(qfalse);
 
 	if ( pm->ps->pm_type == PM_DEAD ) {
 		PM_DeadMove ();
@@ -2060,7 +2103,7 @@ void PmoveSingle (pmove_t *pmove) {
 	} else if (pm->ps->pm_flags & PMF_GRAPPLE_PULL) {
 		PM_GrappleMove();
 		// We can wiggle a bit
-		PM_AirMove();
+		PM_AirMove(qfalse);
 	} else if (pm->ps->pm_flags & PMF_TIME_WATERJUMP) {
 		PM_WaterJumpMove();
 	} else if ( pm->waterlevel > 1 ) {
@@ -2071,13 +2114,13 @@ void PmoveSingle (pmove_t *pmove) {
 		PM_WalkMove();
 	} else {
 		// airborne
-		PM_AirMove();
+		PM_AirMove(qfalse);
 	}
 
 	PM_Animate();
 
 	// set groundentity, watertype, and waterlevel
-	PM_GroundTrace();
+	PM_GroundTrace(qfalse);
 	PM_SetWaterLevel();
 
 	// weapons
@@ -2110,8 +2153,12 @@ Can be called by either the server or the client
 void Pmove (pmove_t *pmove) {
 	int			finalTime;
 	
+	pm_flags = pmove->pmove_flags;
 	pm_snapmode = pmove->pmove_snapmode;
-	pm_accel = pmove->pmove_accel;
+	if(pm_flags & PMFV_ACCELBUFF)
+		pm_accel = pmove->pmove_accel*1.5;
+	else
+		pm_accel = pmove->pmove_accel;
 	pm_airaccel = pmove->pmove_airaccel;
 	pm_qwairaccel = pmove->pmove_qwairaccel;
 	pm_qwairspeed = pmove->pmove_qwairspeed;

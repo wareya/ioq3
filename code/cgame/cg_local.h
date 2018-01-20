@@ -1175,6 +1175,7 @@ extern	vmCvar_t		pmove_airaccel;
 extern	vmCvar_t		pmove_qwairaccel;
 extern	vmCvar_t		pmove_qwairspeed;
 extern	vmCvar_t		pmove_overbouncefix;
+extern	vmCvar_t		pmove_flags;
 
 extern	vmCvar_t		cg_cameraOrbit;
 extern	vmCvar_t		cg_cameraOrbitDelay;

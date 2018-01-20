@@ -94,6 +94,7 @@ vmCvar_t	pmove_airaccel;
 vmCvar_t	pmove_qwairaccel;
 vmCvar_t	pmove_qwairspeed;
 vmCvar_t	pmove_overbouncefix;
+vmCvar_t	pmove_flags;
 
 vmCvar_t	g_rankings;
 vmCvar_t	g_listEntity;
@@ -213,6 +214,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &pmove_qwairaccel, "pmove_qwairaccel", "70.0", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &pmove_qwairspeed, "pmove_qwairspeed", "30.0", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &pmove_overbouncefix, "pmove_overbouncefix", "1", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &pmove_flags, "pmove_flags", "31", CVAR_SYSTEMINFO, 0, qfalse},
 
 //unlagged - server options
 	{ &g_delagHitscan, "g_delagHitscan", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
