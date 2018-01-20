@@ -303,7 +303,7 @@ void PM_StepSlideMove( qboolean gravity ) {
 	if ( !trace.allsolid ) {
 		VectorCopy (trace.endpos, pm->ps->origin);
 	}
-	if ( trace.fraction < 1.0 ) {
+	if ( trace.fraction < 1.0 && pm->ps->velocity[2] < 200.0f) { // don't clip velocity if our vertical speed is too fast upwards
 		PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
 	}
 

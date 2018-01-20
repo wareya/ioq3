@@ -154,12 +154,6 @@ void PM_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce ) {
 	
 	backoff = DotProduct (in, normal);
 	
-	if(pm_overbouncefix)
-	{
-		if(fabs(VectorLength(in) + backoff) < 0.001f && (normal[2] == -1.0f || normal[2] == 1.0f))
-			backoff = -0.0f;
-	}
-	
 	if ( backoff < 0 ) {
 		backoff *= overbounce;
 	} else {
@@ -185,6 +179,7 @@ static void PM_Friction( void ) {
 	float	*vel;
 	float	speed, newspeed, control;
 	float	drop;
+	float	fullstop;
 	
 	vel = pm->ps->velocity;
 	
@@ -194,10 +189,13 @@ static void PM_Friction( void ) {
 	}
 
 	speed = VectorLength(vec);
-	if (speed < 1) {
+	if(pml.msec == 1 && (pm->ps->pm_flags & PMF_DUCKED))
+		fullstop = 0.75f;
+	else
+		fullstop = 1.0f;
+	if (speed < fullstop) {
 		vel[0] = 0;
-		vel[1] = 0;		// allow sinking underwater
-		// FIXME: still have z friction underwater?
+		vel[1] = 0;		// allow sinking underwater so don't reset vertical if speed is less than 1
 		return;
 	}
 
@@ -548,8 +546,7 @@ static void PM_WaterMove( void ) {
 	if ( pml.groundPlane && DotProduct( pm->ps->velocity, pml.groundTrace.plane.normal ) < 0 ) {
 		vel = VectorLength(pm->ps->velocity);
 		// slide along the ground plane
-		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, 
-			pm->ps->velocity, OVERCLIP );
+		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
 
 		VectorNormalize(pm->ps->velocity);
 		VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
@@ -676,8 +673,7 @@ static void PM_AirMove( void ) {
 	// though we don't have a groundentity
 	// slide along the steep plane
 	if ( pml.groundPlane ) {
-		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, 
-			pm->ps->velocity, OVERCLIP );
+		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
 	}
 
 #if 0
@@ -827,14 +823,33 @@ static void PM_WalkMove( void ) {
 	vel = VectorLength(pm->ps->velocity);
 
 	// slide along the ground plane
-	PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, 
-		pm->ps->velocity, OVERCLIP );
 
-	// don't decrease velocity when going up or down a slope
-	VectorNormalize(pm->ps->velocity);
-	VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
+	if(pm_overbouncefix)
+	{
+		float tempdot;
+		tempdot = DotProduct (pm->ps->velocity, pml.groundTrace.plane.normal);
+		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
+		// don't decrease velocity when going up or down a slope - make sure it's actually a slope
+		if(fabs(vel + tempdot) > 0.001f)
+		{
+			VectorNormalize(pm->ps->velocity);
+			VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
+		}
+		// don't maintain tiny amounts of vertical velocity when standing on flat ground
+		else if(fabs(pm->ps->velocity[2]) < 0.001f && (pml.groundTrace.plane.normal[2] == -1.0f || pml.groundTrace.plane.normal[2] == 1.0f))
+			pm->ps->velocity[2] = 0;
+		else
+			Com_Printf("Skipping slope velocity fix - doesn't look like a slope\n");
+	}
+	else
+	{
+		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
+		// don't decrease velocity when going up or down a slope
+		VectorNormalize(pm->ps->velocity);
+		VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
+	}
 
-	// don't do anything if standing still
+	// don't do anything else if standing still
 	if (!pm->ps->velocity[0] && !pm->ps->velocity[1]) {
 		return;
 	}
@@ -884,13 +899,19 @@ static void PM_NoclipMove( void ) {
 	vec3_t		wishdir;
 	float		wishspeed;
 	float		scale;
+	float		fullstop;
 
 	pm->ps->viewheight = DEFAULT_VIEWHEIGHT;
 
 	// friction
 
 	speed = VectorLength (pm->ps->velocity);
-	if (speed < 1)
+	
+	if(pml.msec == 1 && (pm->ps->pm_flags & PMF_DUCKED))
+		fullstop = 0.75f;
+	else
+		fullstop = 1.0f;
+	if (speed < fullstop) 
 	{
 		VectorCopy (vec3_origin, pm->ps->velocity);
 	}
