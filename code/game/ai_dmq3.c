@@ -3275,7 +3275,7 @@ BotAimAtEnemy
 void BotAimAtEnemy(bot_state_t *bs) {
 	int i, enemyvisible;
 	float dist, f, aim_skill, aim_accuracy, speed, reactiontime;
-	vec3_t dir, bestorigin, end, start, groundtarget, cmdmove, enemyvelocity;
+	vec3_t dir, bestorigin, end, start, groundtarget, cmdmove, enemyvelocity, zerolatency_origin, zerolatency_velocity;
 	vec3_t mins = {-4,-4,-4}, maxs = {4, 4, 4};
 	weaponinfo_t wi;
 	aas_entityinfo_t entinfo;
@@ -3362,20 +3362,67 @@ void BotAimAtEnemy(bot_state_t *bs) {
 	//
 	VectorSubtract(entinfo.origin, entinfo.lastvisorigin, enemyvelocity);
 	VectorScale(enemyvelocity, 1 / entinfo.update_time, enemyvelocity);
-	//enemy origin and velocity is remembered every 0.5 seconds
-	if (bs->enemyposition_time < FloatTime()) {
-		//
+	//track enemy origin and velocity as of ~0.5 seconds ago
+	VectorCopy(entinfo.origin, zerolatency_origin);
+	VectorCopy(enemyvelocity, zerolatency_velocity);
+	while (bs->enemyposition_time < FloatTime()) {
+	
+		int i;
+		for(i = 0; i < 5; i++)
+		{
+            VectorCopy(bs->enemyvelocity[i+1], bs->enemyvelocity[i]);
+            VectorCopy(bs->enemyorigin[i+1], bs->enemyorigin[i]);
+		}
+		VectorCopy(enemyvelocity, bs->enemyvelocity[5]);
+		VectorCopy(entinfo.origin, bs->enemyorigin[5]);
+		bs->enemyposition_time += 0.1;
+		
+		
+		/*
+		VectorCopy(enemyvelocity, bs->enemyvelocity[0]);
+		VectorCopy(entinfo.origin, bs->enemyorigin[0]);
 		bs->enemyposition_time = FloatTime() + 0.5;
-		VectorCopy(enemyvelocity, bs->enemyvelocity);
-		VectorCopy(entinfo.origin, bs->enemyorigin);
+		*/
 	}
+    {
+        // 200ms lagification + reconciliation
+		vec3_t tempvec;
+		float leakiness = 0.6; // mixin of sero-latency position; 0: easiest, 1: hardest, 0.6 is a realistic-feeling value for "normal" upper-intermediate players
+		float amount = 0.2 + entinfo.update_time/2 + 0.05 * (abs((int)(FloatTime()*1000)%1000-500)-250)/250.0f; // make fluctuate over time +/-50ms
+        VectorCopy(bs->enemyvelocity[3], enemyvelocity);
+        VectorCopy(bs->enemyorigin[3], entinfo.origin);
+        
+        VectorSubtract(bs->enemyorigin[4], bs->enemyorigin[3], tempvec);
+        VectorMA(entinfo.origin, (FloatTime()-(bs->enemyposition_time-0.1))/0.1, tempvec, entinfo.origin);
+        
+        VectorSubtract(bs->enemyvelocity[4], bs->enemyvelocity[3], tempvec);
+        VectorMA(enemyvelocity, (FloatTime()-(bs->enemyposition_time-0.1))/0.1, tempvec, enemyvelocity);
+        
+        VectorSubtract(bs->enemyvelocity[3], bs->enemyvelocity[2], tempvec); // doesn't need to be accurate
+        VectorAdd(enemyvelocity, tempvec, enemyvelocity);
+        
+        VectorMA(entinfo.origin, amount, enemyvelocity, entinfo.origin);
+        VectorAdd(enemyvelocity, tempvec, enemyvelocity);
+        
+        // hack to make aiming at bunnyhopping players not act weird
+        entinfo.origin[2] = 0.35*entinfo.origin[2] + 0.65*bs->enemyorigin[5][2];
+        // hack to make stutterstepping less of a problem
+        entinfo.origin[0] = (1-leakiness)*entinfo.origin[0] + leakiness*zerolatency_origin[0];
+        entinfo.origin[1] = (1-leakiness)*entinfo.origin[1] + leakiness*zerolatency_origin[1];
+        entinfo.origin[2] = (1-leakiness)*entinfo.origin[2] + leakiness*zerolatency_origin[2];
+        enemyvelocity[0] = (1-leakiness)*enemyvelocity[0] + leakiness*zerolatency_velocity[0];
+        enemyvelocity[1] = (1-leakiness)*enemyvelocity[1] + leakiness*zerolatency_velocity[1];
+        enemyvelocity[2] = (1-leakiness)*enemyvelocity[2] + leakiness*zerolatency_velocity[2];
+    }
+    
+    
 	//if not extremely skilled
 	if (aim_skill < 0.9) {
-		VectorSubtract(entinfo.origin, bs->enemyorigin, dir);
+		VectorSubtract(entinfo.origin, bs->enemyorigin[0], dir);
 		//if the enemy moved a bit
 		if (VectorLengthSquared(dir) > Square(48)) {
 			//if the enemy changed direction
-			if (DotProduct(bs->enemyvelocity, enemyvelocity) < 0) {
+			if (DotProduct(bs->enemyvelocity[0], enemyvelocity) < 0) {
 				//aim accuracy should be worse now
 				aim_accuracy *= 0.7f;
 			}
@@ -3395,7 +3442,7 @@ void BotAimAtEnemy(bot_state_t *bs) {
 		start[2] += wi.offset[2];
 		//
 		BotAI_Trace(&trace, start, mins, maxs, bestorigin, bs->entitynum, MASK_SHOT);
-		//if the enemy is NOT hit
+		// if the enemy is behind a halfwall
 		if (trace.fraction <= 1 && trace.ent != entinfo.number) {
 			bestorigin[2] += 16;
 		}
@@ -3404,7 +3451,7 @@ void BotAimAtEnemy(bot_state_t *bs) {
 			//
 			VectorSubtract(bestorigin, bs->origin, dir);
 			dist = VectorLength(dir);
-			VectorSubtract(entinfo.origin, bs->enemyorigin, dir);
+			VectorSubtract(entinfo.origin, bs->enemyorigin[0], dir);
 			//if the enemy is NOT pretty far away and strafing just small steps left and right
 			if (!(dist > 100 && VectorLengthSquared(dir) < Square(32))) {
 				//if skilled enough do exact prediction

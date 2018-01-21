@@ -200,8 +200,8 @@ typedef struct bot_state_s
 	float predictobstacles_time;					//last time the bot predicted obstacles
 	int predictobstacles_goalareanum;				//last goal areanum the bot predicted obstacles for
 	vec3_t aimtarget;
-	vec3_t enemyvelocity;							//enemy velocity 0.5 secs ago during battle
-	vec3_t enemyorigin;								//enemy origin 0.5 secs ago during battle
+	vec3_t enemyvelocity[6];						//enemy velocity past 500ms (100ms*(6-1))
+	vec3_t enemyorigin[6];							//enemy origin past 500ms
 	//
 	int kamikazebody;								//kamikaze body
 	int proxmines[MAX_PROXMINES];
