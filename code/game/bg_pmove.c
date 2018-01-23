@@ -412,7 +412,11 @@ static qboolean PM_CheckJump( void ) {
 	{
 		float velocity = JUMP_VELOCITY;
 		if(pm->ps->pm_flags & PMF_TIME_LAND)
+		{
+			pm->ps->pm_flags &= ~PMF_ALL_TIMES;
+			pm->ps->pm_time = 0;
 			velocity = velocity*4/3;
+		}
 		else
 		{
 			pm->ps->pm_flags |= PMF_TIME_LAND;
