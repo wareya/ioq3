@@ -411,7 +411,6 @@ to ease the jerk.
 */
 void CG_PredictPlayerState( void ) {
 	int				cmdNum, current;
-	int				pretend_pmove_msec;
 	playerState_t	oldPlayerState;
 	qboolean		moved;
 	usercmd_t		oldestCmd;
@@ -496,16 +495,10 @@ void CG_PredictPlayerState( void ) {
 		trap_Cvar_Set("pmove_msec", "50");
 		trap_Cvar_Update(&pmove_msec);
 	}
-	
-	pretend_pmove_msec = pmove_msec.integer;
 
-	if(pmove_snapmode.value == 1)
-		pretend_pmove_msec = 8;
-
-	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
-	cg_pmove.pmove_msec = pretend_pmove_msec;
+	cg_pmove.pmove_msec = pmove_msec.integer;
+	cg_pmove.pmove_fixed = pmove_fixed.integer;
 	
-    cg_pmove.pmove_snapmode = pmove_snapmode.integer;
     cg_pmove.pmove_accel = pmove_accel.value;
     cg_pmove.pmove_airaccel = pmove_airaccel.value;
     cg_pmove.pmove_qwairaccel = pmove_qwairaccel.value;
@@ -592,7 +585,7 @@ void CG_PredictPlayerState( void ) {
 		cg_pmove.gauntletHit = qfalse;
 
 		if ( cg_pmove.pmove_fixed ) {
-			cg_pmove.cmd.serverTime = ((cg_pmove.cmd.serverTime + pretend_pmove_msec-1) / pretend_pmove_msec) * pretend_pmove_msec;
+			cg_pmove.cmd.serverTime = ((cg_pmove.cmd.serverTime + cg_pmove.pmove_msec-1) / cg_pmove.pmove_msec) * cg_pmove.pmove_msec;
 		}
 
 		Pmove (&cg_pmove);

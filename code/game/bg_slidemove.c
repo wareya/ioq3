@@ -268,9 +268,8 @@ void PM_StepSlideMove( qboolean gravity ) {
 	pm->trace (&trace, start_o, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	VectorSet(up, 0, 0, 1);
 	
-	// never step up when you still have up velocity
-	// TODO: make alt skip threshold a flag
-	if ( pm->ps->velocity[2] > 200 && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7) ) { // value 200 is a guess, CPMA appears to use something larger than 0
+	// never step up when you still have up velocity, UNLESS we just did an initial jump (this seems to be what CPMA does)
+	if ( !(pm->ps->pm_flags & PMF_TIME_LAND) && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7) ) {
 		//Com_Printf("Skipping stepping %d\n", c_pmove);
 		return;
 	}

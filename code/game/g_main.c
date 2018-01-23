@@ -88,7 +88,7 @@ vmCvar_t	g_smoothClients;
 vmCvar_t	pmove_fixed;
 vmCvar_t	pmove_msec;
 
-vmCvar_t	pmove_snapmode;
+vmCvar_t	pmove_gravitymsec;
 vmCvar_t	pmove_accel;
 vmCvar_t	pmove_airaccel;
 vmCvar_t	pmove_qwairaccel;
@@ -208,7 +208,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &pmove_msec, "pmove_msec", "1", CVAR_SYSTEMINFO, 0, qfalse},
 	
-	{ &pmove_snapmode, "pmove_snapmode", "0", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &pmove_gravitymsec, "pmove_gravitymsec", "13", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &pmove_accel, "pmove_accel", "10.0", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &pmove_airaccel, "pmove_airaccel", "1.0", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &pmove_qwairaccel, "pmove_qwairaccel", "70.0", CVAR_SYSTEMINFO, 0, qfalse},

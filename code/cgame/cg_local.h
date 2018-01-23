@@ -1169,7 +1169,7 @@ extern  vmCvar_t		cg_scorePlum;
 extern	vmCvar_t		pmove_fixed;
 extern	vmCvar_t		pmove_msec;
 
-extern	vmCvar_t		pmove_snapmode;
+extern	vmCvar_t		pmove_gravitymsec;
 extern	vmCvar_t		pmove_accel;
 extern	vmCvar_t		pmove_airaccel;
 extern	vmCvar_t		pmove_qwairaccel;

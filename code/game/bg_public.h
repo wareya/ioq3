@@ -190,13 +190,12 @@ typedef struct {
 	void		(*trace)( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
 	int			(*pointcontents)( const vec3_t point, int passEntityNum );
 	
-	int			pmove_snapmode;
 	float		pmove_accel;
 	float		pmove_airaccel;
 	float		pmove_qwairaccel;
 	float		pmove_qwairspeed;
-	float		pmove_overbouncefix;
-	float		pmove_flags;
+	int			pmove_overbouncefix;
+	int			pmove_flags;
 } pmove_t;
 
 // if a full pmove isn't done on the client, you can just update the angles

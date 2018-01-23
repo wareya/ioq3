@@ -44,7 +44,6 @@ float	pm_stopspeed = 100.0f;
 float	pm_duckScale = 0.25f;
 float	pm_swimScale = 0.50f;
 
-int		pm_snapmode = 0; // 0: none (fixes movement, breaks some jumps); 1: use snapping, if pmove_fixed then force it to use 8ms deltas instead of whatever pmove_msec is
 float	pm_accel = 10.0; // note: CPM style is 15, we multiply to it
 float	pm_airaccel = 1.0;
 float	pm_qwairaccel = 70.0;
@@ -414,14 +413,16 @@ static qboolean PM_CheckJump( void ) {
 		float velocity = JUMP_VELOCITY;
 		if(pm->ps->pm_flags & PMF_TIME_LAND)
 			velocity = velocity*4/3;
-		
+		else
+		{
+			pm->ps->pm_flags |= PMF_TIME_LAND;
+			pm->ps->pm_time = 400;
+		}
 		if((pm_flags & PMFV_RAMPJUMP) && pm->ps->velocity[2] > 0)
 			pm->ps->velocity[2] += velocity;
 		else
 			pm->ps->velocity[2] = velocity;
 		
-		pm->ps->pm_flags |= PMF_TIME_LAND;
-		pm->ps->pm_time = 400;
 	}
 	PM_AddEvent( EV_JUMP );
 
@@ -1955,8 +1956,6 @@ PmoveSingle
 ================
 */
 
-void trap_SnapVector( float *v );
-
 void PmoveSingle (pmove_t *pmove) {
 	pm = pmove;
 
@@ -2134,12 +2133,6 @@ void PmoveSingle (pmove_t *pmove) {
 
 	// entering / leaving water splashes
 	PM_WaterEvents();
-
-	// snap some parts of playerstate to save network bandwidth
-	if(pm_snapmode == 1)
-		trap_SnapVector( pm->ps->velocity );
-	//else if(pm_snapmode == 2)
-	//	pm->ps->velocity[2] = round(pm->ps->velocity[2]);
 }
 
 
@@ -2154,7 +2147,6 @@ void Pmove (pmove_t *pmove) {
 	int			finalTime;
 	
 	pm_flags = pmove->pmove_flags;
-	pm_snapmode = pmove->pmove_snapmode;
 	if(pm_flags & PMFV_ACCELBUFF)
 		pm_accel = pmove->pmove_accel*1.5;
 	else

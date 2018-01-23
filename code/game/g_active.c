@@ -337,10 +337,9 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
 		pm.trace = trap_Trace;
 		pm.pointcontents = trap_PointContents;
 		
-		pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
+		pm.pmove_fixed = pmove_fixed.integer;
 		pm.pmove_msec = pmove_msec.integer;
 
-		pm.pmove_snapmode = pmove_snapmode.value;
 		pm.pmove_accel = pmove_accel.value;
 		pm.pmove_airaccel = pmove_airaccel.value;
 		pm.pmove_qwairaccel = pmove_qwairaccel.value;
@@ -762,7 +761,6 @@ void ClientThink_real( gentity_t *ent ) {
 	pmove_t		pm;
 	int			oldEventSequence;
 	int			msec;
-	int			pretend_pmove_msec;
 	usercmd_t	*ucmd;
 
 	client = ent->client;
@@ -915,14 +913,9 @@ void ClientThink_real( gentity_t *ent ) {
 		trap_Cvar_Set("pmove_msec", "50");
 		trap_Cvar_Update(&pmove_msec);
 	}
-	
-	pretend_pmove_msec = pmove_msec.integer;
 
-	if(pmove_snapmode.value == 1)
-		pretend_pmove_msec = 8;
-
-	if ( pmove_fixed.integer || client->pers.pmoveFixed ) {
-		ucmd->serverTime = ((ucmd->serverTime + pretend_pmove_msec-1) / pretend_pmove_msec) * pretend_pmove_msec;
+	if ( pmove_fixed.integer ) {
+		ucmd->serverTime = ((ucmd->serverTime + pmove_msec.integer-1) / pmove_msec.integer) * pmove_msec.integer;
 		//if (ucmd->serverTime - client->ps.commandTime <= 0)
 		//	return;
 	}
@@ -962,10 +955,23 @@ void ClientThink_real( gentity_t *ent ) {
 		client->ps.pm_type = PM_NORMAL;
 	}
 
-	if(pmove_snapmode.value == 1)
+	if(pmove_gravitymsec.integer < 0)
+	{
+		trap_Cvar_Set("pmove_gravitymsec", "0");
+		trap_Cvar_Update(&pmove_gravitymsec);
+	}
+	if(pmove_gravitymsec.integer > 50)
+	{
+		trap_Cvar_Set("pmove_gravitymsec", "50");
+		trap_Cvar_Update(&pmove_gravitymsec);
+	}
+	
+	// emulate effective gravity of the given delta if on the upswing of a jump
+	// CPMA seems to only do this if we just did an initial jump
+	if(pmove_gravitymsec.integer == 0 || !(client->ps.pm_flags & PMF_TIME_LAND))
 		client->ps.gravity = g_gravity.value;
 	else
-		client->ps.gravity = g_gravity.value*0.9375; // emulate effective gravity decrease of 125fps delta - 6.0 per 8ms tick vs 6.4 per 8ms tick
+		client->ps.gravity = round(g_gravity.value*pmove_gravitymsec.integer/1000)/((float)(pmove_gravitymsec.integer)/1000);
 
 	// set speed
 	client->ps.speed = g_speed.value;
@@ -1046,10 +1052,9 @@ void ClientThink_real( gentity_t *ent ) {
 	pm.debugLevel = g_debugMove.integer;
 	pm.noFootsteps = ( g_dmflags.integer & DF_NO_FOOTSTEPS ) > 0;
 
-	pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
-	pm.pmove_msec = pretend_pmove_msec;
+	pm.pmove_fixed = pmove_fixed.integer;
+	pm.pmove_msec = pmove_msec.integer;
 
-	pm.pmove_snapmode = pmove_snapmode.integer;
 	pm.pmove_accel = pmove_accel.value;
 	pm.pmove_airaccel = pmove_airaccel.value;
 	pm.pmove_qwairaccel = pmove_qwairaccel.value;

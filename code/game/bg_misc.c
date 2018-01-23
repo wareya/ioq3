@@ -1451,6 +1451,10 @@ void BG_TouchJumpPad( playerState_t *ps, entityState_t *jumppad ) {
 	ps->jumppad_frame = ps->pmove_framecount;
 	// give the player the velocity from the jumppad
 	VectorCopy( jumppad->origin2, ps->velocity );
+	Com_Printf("Jumppad velocities: %f %f %f\n", ps->velocity[0], ps->velocity[1], ps->velocity[2]);
+	ps->velocity[0] = round(ps->velocity[0]);
+	ps->velocity[1] = round(ps->velocity[1]);
+	ps->velocity[2] = round(ps->velocity[2]);
 }
 
 /*
