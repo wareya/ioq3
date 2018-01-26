@@ -255,6 +255,7 @@ void PM_StepSlideMove( qboolean gravity ) {
 //	vec3_t		delta, delta2;
 	vec3_t		up, down;
 	float		stepSize;
+	float		initialTraceFraction;
 
 	VectorCopy (pm->ps->origin, start_o);
 	VectorCopy (pm->ps->velocity, start_v);
@@ -268,11 +269,12 @@ void PM_StepSlideMove( qboolean gravity ) {
 	pm->trace (&trace, start_o, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	VectorSet(up, 0, 0, 1);
 	
-	// never step up when you still have up velocity, UNLESS we just did an initial jump (this seems to be what CPMA does)
-	if ( !(pm->ps->pm_flags & PMF_TIME_LAND) && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7) ) {
+	// never step up from the air when you still have up velocity, UNLESS we just did an initial jump (this seems to be what CPMA does)
+	if ( !(pm->ps->pm_flags & PMF_TIME_LAND) && pm->ps->velocity[2] > 0.0f && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7) ) {
 		//Com_Printf("Skipping stepping %d\n", c_pmove);
 		return;
 	}
+	initialTraceFraction = trace.fraction;
 
 	//VectorCopy (pm->ps->origin, down_o);
 	//VectorCopy (pm->ps->velocity, down_v);
@@ -304,7 +306,17 @@ void PM_StepSlideMove( qboolean gravity ) {
 		VectorCopy (trace.endpos, pm->ps->origin);
 	}
 	if (trace.fraction < 1.0) {
-		PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
+		if(initialTraceFraction == 1.0 || (pm->ps->pm_flags & PMF_TIME_LAND))
+			// clip velocity if we went from air to floor or it's an initial jump
+			PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
+		else
+		{
+			// otherwise only clip it if it doesn't decrease our upwards velocity (fixes some stairjumps)
+			vec3_t test_velocity;
+			PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, test_velocity, OVERCLIP );
+			if(test_velocity[2] >= pm->ps->velocity[2])
+				VectorCopy(pm->ps->velocity, test_velocity);
+		}
 	}
 
 #if 0

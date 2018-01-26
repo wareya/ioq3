@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // the "gameversion" client command will print this plus compile date
 //unlagged - misc
 //#define	GAMEVERSION	BASEGAME
-#define GAMEVERSION "unlagged"
+#define GAMEVERSION "wpm"
 //unlagged - misc
 
 #define BODY_QUEUE_SIZE		8
