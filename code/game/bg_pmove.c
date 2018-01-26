@@ -724,7 +724,6 @@ static void PM_AirMove( qboolean justJumped ) {
 	//PM_SlideMove ( qtrue );
 	
 	// we might need to jump from a ramp we got mapped to (i.e. adding this fixes bunnyhopping up ramps)
-	/*
 	if(!justJumped)
 	{
 		PM_GroundTrace(qtrue); // set groundent
@@ -734,8 +733,6 @@ static void PM_AirMove( qboolean justJumped ) {
 			PM_CheckJump();
 		pml.walking = qfalse;
 	}
-	*/
-	// no longer needed, was an issue with the overbounce fix
 }
 
 /*
