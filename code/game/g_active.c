@@ -780,8 +780,7 @@ void ClientThink_real( gentity_t *ent ) {
 	if ( ucmd->serverTime < level.time - 1000 ) {
 		ucmd->serverTime = level.time - 1000;
 //		G_Printf("serverTime >>>>>\n" );
-	} 
-
+	}
 
 //unlagged - backward reconciliation #4
 	// frameOffset should be about the number of milliseconds into a frame 
@@ -893,17 +892,6 @@ void ClientThink_real( gentity_t *ent ) {
 		client->pers.realPing = 0;
 	}
 //unlagged - true ping
-
-
-	msec = ucmd->serverTime - client->ps.commandTime;
-	// following others may result in bad times, but we still want
-	// to check for follow toggles
-	if ( msec < 1 && client->sess.spectatorState != SPECTATOR_FOLLOW ) {
-		return;
-	}
-	if ( msec > 200 ) {
-		msec = 200;
-	}
 	
 	if ( pmove_msec.integer < 1 ) { // 1000fps
 		trap_Cvar_Set("pmove_msec", "1");
@@ -918,6 +906,16 @@ void ClientThink_real( gentity_t *ent ) {
 		ucmd->serverTime = ((ucmd->serverTime + pmove_msec.integer-1) / pmove_msec.integer) * pmove_msec.integer;
 		//if (ucmd->serverTime - client->ps.commandTime <= 0)
 		//	return;
+	}
+
+	msec = ucmd->serverTime - client->ps.commandTime;
+	// following others may result in bad times, but we still want
+	// to check for follow toggles
+	if ( msec < 1 && client->sess.spectatorState != SPECTATOR_FOLLOW ) {
+		return;
+	}
+	if ( msec > 200 ) {
+		msec = 200;
 	}
 
 	//
