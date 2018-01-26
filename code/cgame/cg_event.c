@@ -811,7 +811,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME("EV_FIRE_WEAPON");
 		if ( clientNum == cg.predictedPlayerState.clientNum ) {
 			int shotTime = es->eventParm;
-			Com_Printf("firing weapon %d %d %d %d\n", cg.time, cg.predictedPlayerState.commandTime, cent->pe.railFireTime, shotTime);
+			//Com_Printf("firing weapon %d %d %d %d\n", cg.time, cg.predictedPlayerState.commandTime, cent->pe.railFireTime, shotTime);
 			if(shotTime > 255 && shotTime != cg.predictedPlayerState.commandTime) // something went wrong with prediction (<256 means it's from the server - masked by networking resolution)
 				break;
 		}

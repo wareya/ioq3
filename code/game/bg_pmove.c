@@ -2151,7 +2151,7 @@ Can be called by either the server or the client
 ================
 */
 void Pmove (pmove_t *pmove) {
-	
+
 	pm_flags = pmove->pmove_flags;
 	if(pm_flags & PMFV_ACCELBUFF)
 		pm_accel = pmove->pmove_accel*1.5;

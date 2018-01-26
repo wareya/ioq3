@@ -380,8 +380,6 @@ static void CG_TouchTriggerPrediction( void ) {
 		cg.predictedPlayerState.jumppad_ent = 0;
 	}
 }
-
-
 //unlagged - optimized prediction
 #define ABS(x) ((x) < 0 ? (-(x)) : (x))
 
@@ -850,7 +848,6 @@ void CG_PredictPlayerState( void ) {
 		else {
 			// run the Pmove
 			Pmove (&cg_pmove);
-
 			numPredicted++; // debug code
 		}
 //unlagged - optimized prediction
