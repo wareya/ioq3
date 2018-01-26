@@ -261,7 +261,7 @@ Handles user intended acceleration
 */
 static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
 #if 1
-	float		addspeed, accelspeed, currentspeed;
+	float	addspeed, accelspeed, currentspeed;
 
 	currentspeed = DotProduct (pm->ps->velocity, wishdir);
 	addspeed = wishspeed - currentspeed;
@@ -682,11 +682,16 @@ static void PM_AirMove( qboolean justJumped ) {
 	}
 	wishvel[2] = 0;
 	
-	// holding l/r, qw style
+	// holding l/r only, qw style
 	if ( (pm_flags & PMFV_QWAIR) && fmove == 0 && smove != 0 )
 	{
-		scale = pm_qwairspeed/127.0; // we have an axial movement so we don't need PM_CmdScale
+		scale = pm_qwairspeed/127.0; // we have an axial movement so we don't need anything like PM_CmdScale, also PM_CmdScale incorporates speed
 		accel = pm_qwairaccel;
+
+		VectorCopy (wishvel, wishdir);
+		wishspeed = VectorNormalize(wishdir);
+		wishspeed *= scale;
+		PM_Accelerate (wishdir, wishspeed, accel);
 	}
 	// vq3
 	else
@@ -695,13 +700,38 @@ static void PM_AirMove( qboolean justJumped ) {
 		accel = pm_airaccel;
 		if((pm_flags & PMFV_AIRDEACCELBOOST) && DotProduct(pm->ps->velocity, wishvel) < 0)
 			accel *= pm_airdecelerate_boost;
+
+		VectorCopy (wishvel, wishdir);
+		wishspeed = VectorNormalize(wishdir);
+		wishspeed *= scale;
+		PM_Accelerate (wishdir, wishspeed, accel);
+		
+		// holding f/b only, +forward bunnyhopping
+		if ( (pm_flags & PMFV_FWDBUNNY) && fmove != 0 && smove == 0 )
+		{
+			vec3_t hvel;
+			float hspeed, newaccel;
+			VectorCopy(pm->ps->velocity, hvel);
+			hvel[2] = 0;
+			hspeed = VectorNormalize(hvel);
+			
+			// calculate new accel, more of it when pointing forward
+			newaccel = DotProduct( hvel, wishdir );
+			if(newaccel > 0) // skip if pointing >90deg away from the forwards direction
+			{
+				float newspeed;
+				newaccel = 32 * 150 * newaccel * newaccel * pml.frametime; // FIXME: convar
+				
+				hvel[0] = hvel[0]*hspeed + wishdir[0]*newaccel;
+				hvel[1] = hvel[1]*hspeed + wishdir[1]*newaccel;
+				
+				newspeed = VectorLength(hvel);
+				
+				pm->ps->velocity[0] = hvel[0]*hspeed/newspeed;
+				pm->ps->velocity[1] = hvel[1]*hspeed/newspeed;
+			}
+		}
 	}
-
-	VectorCopy (wishvel, wishdir);
-	wishspeed = VectorNormalize(wishdir);
-	wishspeed *= scale;
-
-	PM_Accelerate (wishdir, wishspeed, accel);
 
 	// we may have a ground plane that is very steep, even
 	// though we don't have a groundentity
