@@ -414,6 +414,7 @@ static qboolean PM_CheckJump( void ) {
 
 	pm->ps->groundEntityNum = ENTITYNUM_NONE;
 	{
+		//float oldx, oldy;
 		float velocity = JUMP_VELOCITY;
 		if(pm->ps->pm_flags & PMF_TIME_LAND)
 		{
@@ -426,10 +427,20 @@ static qboolean PM_CheckJump( void ) {
 			pm->ps->pm_flags |= PMF_TIME_LAND;
 			pm->ps->pm_time = 400;
 		}
+		
+		// fix rampjumping the hard way
+		//oldx = pm->ps->velocity[0];
+		//oldy = pm->ps->velocity[1];
+		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
+		//pm->ps->velocity[0] = oldx;
+		//pm->ps->velocity[1] = oldy;
+		
 		if((pm_flags & PMFV_RAMPJUMP) && pm->ps->velocity[2] > 0)
 			pm->ps->velocity[2] += velocity;
 		else
 			pm->ps->velocity[2] = velocity;
+		//if(velocity != JUMP_VELOCITY)
+		//	Com_Printf("Velocity after doublejump: %f\n", pm->ps->velocity[2]);
 		
 	}
 	PM_AddEvent( EV_JUMP );
@@ -650,8 +661,7 @@ PM_AirMove
 
 ===================
 */
-static void PM_GroundTrace( qboolean );
-static void PM_AirMove( qboolean justJumped ) {
+static void PM_AirMove( void ) {
 	int			i;
 	vec3_t		wishvel;
 	float		fmove, smove;
@@ -740,29 +750,7 @@ static void PM_AirMove( qboolean justJumped ) {
 		PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
 	}
 
-#if 0
-	//ZOID:  If we are on the grapple, try stair-stepping
-	//this allows a player to use the grapple to pull himself
-	//over a ledge
-	if (pm->ps->pm_flags & PMF_GRAPPLE_PULL)
-		PM_StepSlideMove ( qtrue );
-	else
-		PM_SlideMove ( qtrue );
-#endif
-
 	PM_StepSlideMove ( qtrue );
-	//PM_SlideMove ( qtrue );
-	
-	// we might need to jump from a ramp we got mapped to (i.e. adding this fixes bunnyhopping up ramps)
-	if(!justJumped)
-	{
-		PM_GroundTrace(qtrue); // set groundent
-		if ( pml.groundPlane )
-			PM_ClipVelocity (pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP );
-		if ( pml.walking )
-			PM_CheckJump();
-		pml.walking = qfalse;
-	}
 }
 
 /*
@@ -820,7 +808,7 @@ static void PM_WalkMove( void ) {
 		if ( pm->waterlevel > 1 ) {
 			PM_WaterMove();
 		} else {
-			PM_AirMove(qtrue);
+			PM_AirMove();
 		}
 		return;
 	}
@@ -1240,7 +1228,7 @@ static void PM_GroundTraceMissed( void ) {
 PM_GroundTrace
 =============
 */
-static void PM_GroundTrace( qboolean kickoffOverride ) {
+static void PM_GroundTrace( void ) {
 	vec3_t		point;
 	trace_t		trace;
 
@@ -1266,7 +1254,7 @@ static void PM_GroundTrace( qboolean kickoffOverride ) {
 	}
 
 	// check if getting thrown off the ground
-	if ( !kickoffOverride && pm->ps->velocity[2] > 0 && DotProduct( pm->ps->velocity, trace.plane.normal ) > 10 ) {
+	if ( pm->ps->velocity[2] > 0 && DotProduct( pm->ps->velocity, trace.plane.normal ) > 10 ) {
 		if ( pm->debugLevel ) {
 			Com_Printf("%i:kickoff\n", c_pmove);
 		}
@@ -2117,7 +2105,7 @@ void PmoveSingle (pmove_t *pmove) {
 	PM_CheckDuck ();
 
 	// set groundentity
-	PM_GroundTrace(qfalse);
+	PM_GroundTrace();
 
 	if ( pm->ps->pm_type == PM_DEAD ) {
 		PM_DeadMove ();
@@ -2136,7 +2124,7 @@ void PmoveSingle (pmove_t *pmove) {
 	} else if (pm->ps->pm_flags & PMF_GRAPPLE_PULL) {
 		PM_GrappleMove();
 		// We can wiggle a bit
-		PM_AirMove(qfalse);
+		PM_AirMove();
 	} else if (pm->ps->pm_flags & PMF_TIME_WATERJUMP) {
 		PM_WaterJumpMove();
 	} else if ( pm->waterlevel > 1 ) {
@@ -2147,13 +2135,13 @@ void PmoveSingle (pmove_t *pmove) {
 		PM_WalkMove();
 	} else {
 		// airborne
-		PM_AirMove(qfalse);
+		PM_AirMove();
 	}
 
 	PM_Animate();
 
 	// set groundentity, watertype, and waterlevel
-	PM_GroundTrace(qfalse);
+	PM_GroundTrace();
 	PM_SetWaterLevel();
 
 	// weapons
