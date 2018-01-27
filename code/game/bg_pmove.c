@@ -704,7 +704,6 @@ static void PM_AirMove( qboolean justJumped ) {
 		VectorCopy (wishvel, wishdir);
 		wishspeed = VectorNormalize(wishdir);
 		wishspeed *= scale;
-		PM_Accelerate (wishdir, wishspeed, accel);
 		
 		// holding f/b only, +forward bunnyhopping
 		if ( (pm_flags & PMFV_FWDBUNNY) && fmove != 0 && smove == 0 )
@@ -717,20 +716,21 @@ static void PM_AirMove( qboolean justJumped ) {
 			
 			// calculate new accel, more of it when pointing forward
 			newaccel = DotProduct( hvel, wishdir );
-			if(newaccel > 0) // skip if pointing >90deg away from the forwards direction
+			if(newaccel > 0) // skip if pointing >=90deg away from the forwards direction
 			{
-				float newspeed;
 				newaccel = 32 * 150 * newaccel * newaccel * pml.frametime; // FIXME: convar
 				
-				hvel[0] = hvel[0]*hspeed + wishdir[0]*newaccel;
-				hvel[1] = hvel[1]*hspeed + wishdir[1]*newaccel;
+				hvel[0] = pm->ps->velocity[0] + wishdir[0]*newaccel;
+				hvel[1] = pm->ps->velocity[1] + wishdir[1]*newaccel;
 				
-				newspeed = VectorLength(hvel);
+				VectorNormalize(hvel);
 				
-				pm->ps->velocity[0] = hvel[0]*hspeed/newspeed;
-				pm->ps->velocity[1] = hvel[1]*hspeed/newspeed;
+				pm->ps->velocity[0] = hvel[0]*hspeed;
+				pm->ps->velocity[1] = hvel[1]*hspeed;
 			}
 		}
+		
+		PM_Accelerate (wishdir, wishspeed, accel);
 	}
 
 	// we may have a ground plane that is very steep, even
