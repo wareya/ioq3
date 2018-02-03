@@ -2421,6 +2421,7 @@ static int CollapseStagesToGLSL(void)
 
 	if (!skip)
 	{
+		int seen_lightmap = 0;
 		for (i = 0; i < MAX_SHADER_STAGES; i++)
 		{
 			shaderStage_t *pStage = &stages[i];
@@ -2477,9 +2478,10 @@ static int CollapseStagesToGLSL(void)
 						break;
 
 					case ST_COLORMAP:
-						if (pStage2->bundle[0].tcGen == TCGEN_LIGHTMAP)
+						if (pStage2->bundle[0].tcGen == TCGEN_LIGHTMAP && !seen_lightmap)
 						{
 							lightmap = pStage2;
+							seen_lightmap = 1;
 						}
 						break;
 
