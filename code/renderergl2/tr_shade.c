@@ -506,7 +506,7 @@ static void ComputeShaderColors( shaderStage_t *pStage, vec4_t baseColor, vec4_t
 		case CGEN_LIGHTING_DIFFUSE:
 			baseColor[0] =
 			baseColor[1] =
-			baseColor[2] = ((pStage->bundle[0].isLightmap || (pStage->glslShaderIndex == LIGHTDEF_USE_LIGHTMAP)) ? overbrightmap : overbright);
+			baseColor[2] = ((pStage->bundle[0].isLightmap || pStage->bundle[1].isLightmap || (pStage->glslShaderIndex == LIGHTDEF_USE_LIGHTMAP)) ? overbrightmap : overbright);
 			break;
 		case CGEN_IDENTITY_LIGHTING:
 		case CGEN_BAD:
