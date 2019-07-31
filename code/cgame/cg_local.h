@@ -46,7 +46,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	PAIN_TWITCH_TIME	200
 #define	WEAPON_SELECT_TIME	1400
 #define	ITEM_SCALEUP_TIME	1000
-#define	ZOOM_TIME			150
 #define	ITEM_BLOB_TIME		200
 #define	MUZZLE_FLASH_TIME	20
 #define	SINK_TIME			1000		// time for fragments to sink into ground before going away
@@ -1147,8 +1146,10 @@ extern	vmCvar_t		cg_tracerLength;
 extern	vmCvar_t		cg_autoswitch;
 extern	vmCvar_t		cg_ignore;
 extern	vmCvar_t		cg_simpleItems;
+extern	vmCvar_t		cg_nobob;
 extern	vmCvar_t		cg_fov;
 extern	vmCvar_t		cg_zoomFov;
+extern	vmCvar_t		cg_zoomAnimationTime;
 extern	vmCvar_t		cg_thirdPersonRange;
 extern	vmCvar_t		cg_thirdPersonAngle;
 extern	vmCvar_t		cg_thirdPerson;

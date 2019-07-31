@@ -342,7 +342,7 @@ static void CG_OffsetFirstPersonView( void ) {
 	}
 
 	// add angles based on damage kick
-	if ( cg.damageTime ) {
+	if ( cg.damageTime && !cg_nobob.integer ) {
 		ratio = cg.time - cg.damageTime;
 		if ( ratio < DAMAGE_DEFLECT_TIME ) {
 			ratio /= DAMAGE_DEFLECT_TIME;
@@ -402,24 +402,27 @@ static void CG_OffsetFirstPersonView( void ) {
 			* (DUCK_TIME - timeDelta) / DUCK_TIME;
 	}
 
-	// add bob height
-	bob = cg.bobfracsin * cg.xyspeed * cg_bobup.value;
-	if (bob > 6) {
-		bob = 6;
-	}
+	if ( !cg_nobob.integer )
+	{
+		// add bob height
+		bob = cg.bobfracsin * cg.xyspeed * cg_bobup.value;
+		if (bob > 6) {
+			bob = 6;
+		}
 
-	origin[2] += bob;
+		origin[2] += bob;
 
 
-	// add fall height
-	delta = cg.time - cg.landTime;
-	if ( delta < LAND_DEFLECT_TIME ) {
-		f = delta / LAND_DEFLECT_TIME;
-		cg.refdef.vieworg[2] += cg.landChange * f;
-	} else if ( delta < LAND_DEFLECT_TIME + LAND_RETURN_TIME ) {
-		delta -= LAND_DEFLECT_TIME;
-		f = 1.0 - ( delta / LAND_RETURN_TIME );
-		cg.refdef.vieworg[2] += cg.landChange * f;
+		// add fall height
+		delta = cg.time - cg.landTime;
+		if ( delta < LAND_DEFLECT_TIME ) {
+			f = delta / LAND_DEFLECT_TIME;
+			cg.refdef.vieworg[2] += cg.landChange * f;
+		} else if ( delta < LAND_DEFLECT_TIME + LAND_RETURN_TIME ) {
+			delta -= LAND_DEFLECT_TIME;
+			f = 1.0 - ( delta / LAND_RETURN_TIME );
+			cg.refdef.vieworg[2] += cg.landChange * f;
+		}
 	}
 
 	// add step offset
@@ -503,17 +506,21 @@ static int CG_CalcFov( void ) {
 			zoomFov = 160;
 		}
 
-		if ( cg.zoomed ) {
-			f = ( cg.time - cg.zoomTime ) / (float)ZOOM_TIME;
-			if ( f > 1.0 ) {
-				fov_x = zoomFov;
-			} else {
-				fov_x = fov_x + f * ( zoomFov - fov_x );
-			}
+		if ( cg_zoomAnimationTime.value == 0.0 ) {
+			fov_x = zoomFov;
 		} else {
-			f = ( cg.time - cg.zoomTime ) / (float)ZOOM_TIME;
-			if ( f <= 1.0 ) {
-				fov_x = zoomFov + f * ( fov_x - zoomFov );
+			if ( cg.zoomed ) {
+				f = ( cg.time - cg.zoomTime ) / cg_zoomAnimationTime.value;
+				if ( f > 1.0 ) {
+					fov_x = zoomFov;
+				} else {
+					fov_x = fov_x + f * ( zoomFov - fov_x );
+				}
+			} else {
+				f = ( cg.time - cg.zoomTime ) / cg_zoomAnimationTime.value;
+				if ( f <= 1.0 ) {
+					fov_x = zoomFov + f * ( fov_x - zoomFov );
+				}
 			}
 		}
 	}

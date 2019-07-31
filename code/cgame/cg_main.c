@@ -137,8 +137,10 @@ vmCvar_t	cg_tracerLength;
 vmCvar_t	cg_autoswitch;
 vmCvar_t	cg_ignore;
 vmCvar_t	cg_simpleItems;
+vmCvar_t	cg_nobob;
 vmCvar_t	cg_fov;
 vmCvar_t	cg_zoomFov;
+vmCvar_t	cg_zoomAnimationTime;
 vmCvar_t	cg_thirdPerson;
 vmCvar_t	cg_thirdPersonRange;
 vmCvar_t	cg_thirdPersonAngle;
@@ -236,6 +238,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_autoswitch, "cg_autoswitch", "1", CVAR_ARCHIVE },
 	{ &cg_drawGun, "cg_drawGun", "1", CVAR_ARCHIVE },
 	{ &cg_zoomFov, "cg_zoomfov", "22.5", CVAR_ARCHIVE },
+	{ &cg_zoomAnimationTime, "cg_zoomAnimationTime", "150", CVAR_ARCHIVE },
 	{ &cg_fov, "cg_fov", "90", CVAR_ARCHIVE },
 	{ &cg_viewsize, "cg_viewsize", "100", CVAR_ARCHIVE },
 	{ &cg_shadows, "cg_shadows", "1", CVAR_ARCHIVE  },
@@ -259,16 +262,17 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_crosshairY, "cg_crosshairY", "0", CVAR_ARCHIVE },
 	{ &cg_brassTime, "cg_brassTime", "2500", CVAR_ARCHIVE },
 	{ &cg_simpleItems, "cg_simpleItems", "0", CVAR_ARCHIVE },
+	{ &cg_nobob, "cg_nobob", "0", CVAR_ARCHIVE },
 	{ &cg_addMarks, "cg_marks", "1", CVAR_ARCHIVE },
 	{ &cg_lagometer, "cg_lagometer", "1", CVAR_ARCHIVE },
 	{ &cg_railTrailTime, "cg_railTrailTime", "400", CVAR_ARCHIVE  },
-	{ &cg_gun_x, "cg_gunX", "0", CVAR_CHEAT },
-	{ &cg_gun_y, "cg_gunY", "0", CVAR_CHEAT },
-	{ &cg_gun_z, "cg_gunZ", "0", CVAR_CHEAT },
+	{ &cg_gun_x, "cg_gunX", "0", CVAR_ARCHIVE },
+	{ &cg_gun_y, "cg_gunY", "0", CVAR_ARCHIVE },
+	{ &cg_gun_z, "cg_gunZ", "0", CVAR_ARCHIVE },
 	{ &cg_centertime, "cg_centertime", "3", CVAR_CHEAT },
 	{ &cg_runpitch, "cg_runpitch", "0.002", CVAR_ARCHIVE},
 	{ &cg_runroll, "cg_runroll", "0.005", CVAR_ARCHIVE },
-	{ &cg_bobup , "cg_bobup", "0.005", CVAR_CHEAT },
+	{ &cg_bobup , "cg_bobup", "0.005", CVAR_ARCHIVE },
 	{ &cg_bobpitch, "cg_bobpitch", "0.002", CVAR_ARCHIVE },
 	{ &cg_bobroll, "cg_bobroll", "0.002", CVAR_ARCHIVE },
 	{ &cg_swingSpeed, "cg_swingSpeed", "0.3", CVAR_CHEAT },
