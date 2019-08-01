@@ -153,6 +153,12 @@ vmCvar_t 	cg_teamChatHeight;
 vmCvar_t 	cg_stats;
 vmCvar_t 	cg_buildScript;
 vmCvar_t 	cg_forceModel;
+vmCvar_t 	cg_enemyModel;
+vmCvar_t 	cg_enemyColor;
+vmCvar_t 	cg_blueModel;
+vmCvar_t 	cg_blueColor;
+vmCvar_t 	cg_redModel;
+vmCvar_t 	cg_redColor;
 vmCvar_t	cg_paused;
 vmCvar_t	cg_blood;
 vmCvar_t	cg_predictItems;
@@ -291,9 +297,15 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_thirdPersonRange, "cg_thirdPersonRange", "40", CVAR_CHEAT },
 	{ &cg_thirdPersonAngle, "cg_thirdPersonAngle", "0", CVAR_CHEAT },
 	{ &cg_thirdPerson, "cg_thirdPerson", "0", 0 },
-	{ &cg_teamChatTime, "cg_teamChatTime", "3000", CVAR_ARCHIVE  },
-	{ &cg_teamChatHeight, "cg_teamChatHeight", "0", CVAR_ARCHIVE  },
-	{ &cg_forceModel, "cg_forceModel", "0", CVAR_ARCHIVE  },
+	{ &cg_teamChatTime, "cg_teamChatTime", "3000", CVAR_ARCHIVE },
+	{ &cg_teamChatHeight, "cg_teamChatHeight", "0", CVAR_ARCHIVE },
+	{ &cg_forceModel, "cg_forceModel", "1", CVAR_ARCHIVE },
+	{ &cg_enemyModel, "cg_enemyModel", "keel/pm", CVAR_ARCHIVE },
+	{ &cg_enemyColor, "cg_enemyColor", "2", CVAR_ARCHIVE },
+	{ &cg_blueModel, "cg_blueModel", "biker/pm", CVAR_ARCHIVE },
+	{ &cg_blueColor, "cg_blueColor", "4", CVAR_ARCHIVE },
+	{ &cg_redModel, "cg_redModel", "ranger/pm", CVAR_ARCHIVE },
+	{ &cg_redColor, "cg_redColor", "1", CVAR_ARCHIVE },
 	{ &cg_predictItems, "cg_predictItems", "1", CVAR_ARCHIVE },
 #ifdef MISSIONPACK
 	{ &cg_deferPlayers, "cg_deferPlayers", "0", CVAR_ARCHIVE },

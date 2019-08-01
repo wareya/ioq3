@@ -613,6 +613,37 @@ static qboolean CG_RegisterClientModelname( clientInfo_t *ci, const char *modelN
 	return qtrue;
 }
 
+static qboolean CG_ColorFromChar( char c, unsigned char * color )
+{
+	if ( c >= '0' && c <= '7' )
+	{
+		c -= '0';
+		color[0] = (c&1) ? 255 : 0;
+		color[1] = (c&2) ? 255 : 0;
+		color[2] = (c&4) ? 255 : 0;
+		return qtrue;
+	}
+	else if ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) )
+	{
+		char r, g, b;
+		if ( c >= 'a' && c <= 'z' )
+			c -= 'a';
+		else
+			c -= 'A';
+		c += 1;
+		r = c % 3;
+		c /= 3;
+		g = c % 3;
+		c /= 3;
+		b = c % 3;
+		color[0] = (r==2) ? 255 : ((r==1) ? 96 : 0);
+		color[1] = (g==2) ? 255 : ((g==1) ? 96 : 0);
+		color[2] = (b==2) ? 255 : ((b==1) ? 96 : 0);
+		return qtrue;
+	}
+	return qfalse;
+}
+
 /*
 ====================
 CG_ColorFromString
@@ -955,20 +986,20 @@ void CG_NewClientInfo( int clientNum ) {
 		char modelStr[MAX_QPATH];
 		char *skin;
 
-		if( cgs.gametype >= GT_TEAM ) {
-			Q_strncpyz( newInfo.modelName, DEFAULT_TEAM_MODEL, sizeof( newInfo.modelName ) );
-			Q_strncpyz( newInfo.skinName, "default", sizeof( newInfo.skinName ) );
-		} else {
+		if ( clientNum == cg.clientNum )
 			trap_Cvar_VariableStringBuffer( "model", modelStr, sizeof( modelStr ) );
-			if ( ( skin = strchr( modelStr, '/' ) ) == NULL) {
-				skin = "default";
-			} else {
-				*skin++ = 0;
-			}
+		else if ( cgs.gametype >= GT_TEAM )
+			trap_Cvar_VariableStringBuffer( ( newInfo.team == TEAM_BLUE ) ? "cg_blueModel" : "cg_redModel", modelStr, sizeof( modelStr ) );
+		else 
+			trap_Cvar_VariableStringBuffer( "cg_enemyModel", modelStr, sizeof( modelStr ) );
 
-			Q_strncpyz( newInfo.skinName, skin, sizeof( newInfo.skinName ) );
-			Q_strncpyz( newInfo.modelName, modelStr, sizeof( newInfo.modelName ) );
-		}
+		if ( ( skin = strchr( modelStr, '/' ) ) == NULL)
+			skin = "default";
+		else
+			*skin++ = 0;
+
+		Q_strncpyz( newInfo.skinName, skin, sizeof( newInfo.skinName ) );
+		Q_strncpyz( newInfo.modelName, modelStr, sizeof( newInfo.modelName ) );
 
 		if ( cgs.gametype >= GT_TEAM ) {
 			// keep skin name
@@ -999,20 +1030,20 @@ void CG_NewClientInfo( int clientNum ) {
 		char modelStr[MAX_QPATH];
 		char *skin;
 
-		if( cgs.gametype >= GT_TEAM ) {
-			Q_strncpyz( newInfo.headModelName, DEFAULT_TEAM_HEAD, sizeof( newInfo.headModelName ) );
-			Q_strncpyz( newInfo.headSkinName, "default", sizeof( newInfo.headSkinName ) );
-		} else {
-			trap_Cvar_VariableStringBuffer( "headmodel", modelStr, sizeof( modelStr ) );
-			if ( ( skin = strchr( modelStr, '/' ) ) == NULL) {
-				skin = "default";
-			} else {
-				*skin++ = 0;
-			}
+		if ( clientNum == cg.clientNum )
+			trap_Cvar_VariableStringBuffer( "model", modelStr, sizeof( modelStr ) );
+		else if ( cgs.gametype >= GT_TEAM )
+			trap_Cvar_VariableStringBuffer( ( newInfo.team == TEAM_BLUE ) ? "cg_blueModel" : "cg_redModel", modelStr, sizeof( modelStr ) );
+		else 
+			trap_Cvar_VariableStringBuffer( "cg_enemyModel", modelStr, sizeof( modelStr ) );
 
-			Q_strncpyz( newInfo.headSkinName, skin, sizeof( newInfo.headSkinName ) );
-			Q_strncpyz( newInfo.headModelName, modelStr, sizeof( newInfo.headModelName ) );
-		}
+		if ( ( skin = strchr( modelStr, '/' ) ) == NULL)
+			skin = "default";
+		else
+			*skin++ = 0;
+
+		Q_strncpyz( newInfo.headSkinName, skin, sizeof( newInfo.headSkinName ) );
+		Q_strncpyz( newInfo.headModelName, modelStr, sizeof( newInfo.headModelName ) );
 
 		if ( cgs.gametype >= GT_TEAM ) {
 			// keep skin name
@@ -2187,53 +2218,6 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, entityState_t *state, int te
 }
 
 /*
-=================
-CG_LightVerts
-=================
-*/
-int CG_LightVerts( vec3_t normal, int numVerts, polyVert_t *verts )
-{
-	int				i, j;
-	float			incoming;
-	vec3_t			ambientLight;
-	vec3_t			lightDir;
-	vec3_t			directedLight;
-
-	trap_R_LightForPoint( verts[0].xyz, ambientLight, directedLight, lightDir );
-
-	for (i = 0; i < numVerts; i++) {
-		incoming = DotProduct (normal, lightDir);
-		if ( incoming <= 0 ) {
-			verts[i].modulate[0] = ambientLight[0];
-			verts[i].modulate[1] = ambientLight[1];
-			verts[i].modulate[2] = ambientLight[2];
-			verts[i].modulate[3] = 255;
-			continue;
-		} 
-		j = ( ambientLight[0] + incoming * directedLight[0] );
-		if ( j > 255 ) {
-			j = 255;
-		}
-		verts[i].modulate[0] = j;
-
-		j = ( ambientLight[1] + incoming * directedLight[1] );
-		if ( j > 255 ) {
-			j = 255;
-		}
-		verts[i].modulate[1] = j;
-
-		j = ( ambientLight[2] + incoming * directedLight[2] );
-		if ( j > 255 ) {
-			j = 255;
-		}
-		verts[i].modulate[2] = j;
-
-		verts[i].modulate[3] = 255;
-	}
-	return qtrue;
-}
-
-/*
 ===============
 CG_Player
 ===============
@@ -2318,6 +2302,21 @@ void CG_Player( centity_t *cent ) {
 	//
 	legs.hModel = ci->legsModel;
 	legs.customSkin = ci->legsSkin;
+	legs.shaderRGBA[0] = 0xff;
+	legs.shaderRGBA[1] = 0xff;
+	legs.shaderRGBA[2] = 0xff;
+	legs.shaderRGBA[3] = 0xff;
+	
+	if ( cg_forceModel.integer ) {
+		char colorStr[16];
+		if ( cgs.gametype >= GT_TEAM ) {
+			trap_Cvar_VariableStringBuffer( ( ci->team == TEAM_BLUE ) ? "cg_blueColor" : "cg_redColor", colorStr, sizeof( colorStr ) );
+			CG_ColorFromChar ( colorStr[0], legs.shaderRGBA );
+		} else if ( clientNum != cg.clientNum ) {
+			trap_Cvar_VariableStringBuffer( "cg_enemyColor", colorStr, sizeof( colorStr ) );
+			CG_ColorFromChar ( colorStr[0], legs.shaderRGBA );
+		}
+	}
 
 	VectorCopy( cent->lerpOrigin, legs.origin );
 
@@ -2342,6 +2341,21 @@ void CG_Player( centity_t *cent ) {
 	}
 
 	torso.customSkin = ci->torsoSkin;
+	torso.shaderRGBA[0] = 0xff;
+	torso.shaderRGBA[1] = 0xff;
+	torso.shaderRGBA[2] = 0xff;
+	torso.shaderRGBA[3] = 0xff;
+	
+	if ( cg_forceModel.integer ) {
+		char colorStr[16];
+		if ( cgs.gametype >= GT_TEAM ) {
+			trap_Cvar_VariableStringBuffer( ( ci->team == TEAM_BLUE ) ? "cg_blueColor" : "cg_redColor", colorStr, sizeof( colorStr ) );
+			CG_ColorFromChar ( colorStr[0], torso.shaderRGBA );
+		} else if ( clientNum != cg.clientNum ) {
+			trap_Cvar_VariableStringBuffer( "cg_enemyColor", colorStr, sizeof( colorStr ) );
+			CG_ColorFromChar ( colorStr[0], torso.shaderRGBA );
+		}
+	}
 
 	VectorCopy( cent->lerpOrigin, torso.lightingOrigin );
 
@@ -2568,6 +2582,21 @@ void CG_Player( centity_t *cent ) {
 		return;
 	}
 	head.customSkin = ci->headSkin;
+	head.shaderRGBA[0] = 0xff;
+	head.shaderRGBA[1] = 0xff;
+	head.shaderRGBA[2] = 0xff;
+	head.shaderRGBA[3] = 0xff;
+	
+	if ( cg_forceModel.integer ) {
+		char colorStr[16];
+		if ( cgs.gametype >= GT_TEAM ) {
+			trap_Cvar_VariableStringBuffer( ( ci->team == TEAM_BLUE ) ? "cg_blueColor" : "cg_redColor", colorStr, sizeof( colorStr ) );
+			CG_ColorFromChar ( colorStr[0], head.shaderRGBA );
+		} else if ( clientNum != cg.clientNum ) {
+			trap_Cvar_VariableStringBuffer( "cg_enemyColor", colorStr, sizeof( colorStr ) );
+			CG_ColorFromChar ( colorStr[0], head.shaderRGBA );
+		}
+	}
 
 	VectorCopy( cent->lerpOrigin, head.lightingOrigin );
 
