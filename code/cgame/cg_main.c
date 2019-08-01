@@ -187,7 +187,8 @@ vmCvar_t	pmove_qwairaccel;
 vmCvar_t	pmove_qwairspeed;
 vmCvar_t	pmove_overbouncefix;
 vmCvar_t	pmove_flags;
-vmCvar_t	pmove_cpmweapons;
+
+vmCvar_t	cg_cpmweapons;
 
 vmCvar_t	cg_cameraMode;
 vmCvar_t	cg_cameraOrbit;
@@ -364,7 +365,8 @@ static cvarTable_t cvarTable[] = {
 	{ &pmove_qwairspeed, "pmove_qwairspeed", "30.0", CVAR_SYSTEMINFO},
 	{ &pmove_overbouncefix, "pmove_overbouncefix", "1.0", CVAR_SYSTEMINFO},
 	{ &pmove_flags, "pmove_flags", "31", CVAR_SYSTEMINFO},
-	{ &pmove_cpmweapons, "pmove_cpmweapons", "1", CVAR_SYSTEMINFO},
+	
+	{ &cg_cpmweapons, "g_cpmweapons", "1", CVAR_SYSTEMINFO},
 	
 #ifdef MISSIONPACK
 	{ &cg_smallFont, "ui_smallFont", "0.25", CVAR_ARCHIVE},

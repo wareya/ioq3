@@ -320,7 +320,7 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
 	passent = ent->s.number;
 	VectorCopy( start, tr_start );
 	VectorCopy( end, tr_end );
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < (g_cpmweapons.integer ? 16 : 10); i++) {
 		trap_Trace (&tr, tr_start, NULL, NULL, tr_end, passent, MASK_SHOT);
 		traceEnt = &g_entities[ tr.entityNum ];
 
@@ -330,7 +330,7 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
 		}
 
 		if ( traceEnt->takedamage) {
-			damage = DEFAULT_SHOTGUN_DAMAGE * s_quadFactor;
+			damage = (g_cpmweapons.integer ? 6 : DEFAULT_SHOTGUN_DAMAGE) * s_quadFactor;
 #ifdef MISSIONPACK
 			if ( traceEnt->client && traceEnt->client->invulnerabilityTime > level.time ) {
 				if (G_InvulnerabilityEffect( traceEnt, forward, tr.endpos, impactpoint, bouncedir )) {
@@ -383,8 +383,8 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
 
 	// generate the "random" spread pattern
 	for ( i = 0 ; i < DEFAULT_SHOTGUN_COUNT ; i++ ) {
-		r = Q_crandom( &seed ) * DEFAULT_SHOTGUN_SPREAD * 16;
-		u = Q_crandom( &seed ) * DEFAULT_SHOTGUN_SPREAD * 16;
+		r = Q_crandom( &seed ) * (g_cpmweapons.integer ? 900 : DEFAULT_SHOTGUN_SPREAD) * 16;
+		u = Q_crandom( &seed ) * (g_cpmweapons.integer ? 900 : DEFAULT_SHOTGUN_SPREAD) * 16;
 		VectorMA( origin, 8192 * 16, forward, end);
 		VectorMA (end, r, right, end);
 		VectorMA (end, u, up, end);
@@ -508,7 +508,7 @@ void weapon_railgun_fire (gentity_t *ent) {
 	int			passent;
 	gentity_t	*unlinkedEntities[MAX_RAIL_HITS];
 
-	damage = 100 * s_quadFactor;
+	damage = (g_cpmweapons.integer ? 80 : 100) * s_quadFactor;
 
 	VectorMA (muzzle, 8192, forward, end);
 
@@ -683,11 +683,7 @@ void Weapon_LightningFire( gentity_t *ent ) {
 	gentity_t	*traceEnt, *tent;
 	int			damage, i, passent;
 
-//unlagged - server options
-	// this is configurable now
-//	damage = 8 * s_quadFactor;
-	damage = g_lightningDamage.integer * s_quadFactor;
-//unlagged - server options
+	damage = (g_cpmweapons.integer ? 5 : 8) * s_quadFactor; // fires every 33ms instead of 50ms, so damage is similar
 
 	passent = ent->s.number;
 	for (i = 0; i < 10; i++) {

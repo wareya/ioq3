@@ -881,6 +881,15 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	}
 
 	knockback = damage;
+	if ( g_cpmweapons.integer )
+	{
+		if ( mod == MOD_SHOTGUN )
+			knockback /= 3;
+		if ( mod == MOD_LIGHTNING )
+			knockback = knockback * 3 / 2;
+		if ( mod == MOD_GAUNTLET )
+			knockback = knockback / 2;
+	}
 	if ( knockback > 200 ) {
 		knockback = 200;
 	}

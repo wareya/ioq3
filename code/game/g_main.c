@@ -95,7 +95,6 @@ vmCvar_t	pmove_qwairaccel;
 vmCvar_t	pmove_qwairspeed;
 vmCvar_t	pmove_overbouncefix;
 vmCvar_t	pmove_flags;
-vmCvar_t	pmove_cpmweapons;
 
 vmCvar_t	g_rankings;
 vmCvar_t	g_listEntity;
@@ -117,9 +116,10 @@ vmCvar_t	g_proxMineTimeout;
 vmCvar_t	g_delagHitscan;
 vmCvar_t	g_unlaggedVersion;
 vmCvar_t	g_truePing;
-vmCvar_t	g_lightningDamage;
 vmCvar_t	sv_fps;
 //unlagged - server options
+
+vmCvar_t	g_cpmweapons;
 
 static cvarTable_t		gameCvarTable[] = {
 	// don't override the cheat state set by the system
@@ -216,16 +216,15 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &pmove_qwairspeed, "pmove_qwairspeed", "30.0", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &pmove_overbouncefix, "pmove_overbouncefix", "1", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &pmove_flags, "pmove_flags", "31", CVAR_SYSTEMINFO, 0, qfalse},
-	{ &pmove_cpmweapons, "pmove_cpmweapons", "1", CVAR_SYSTEMINFO, 0, qfalse},
 
 //unlagged - server options
 	{ &g_delagHitscan, "g_delagHitscan", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
 	{ &g_unlaggedVersion, "g_unlaggedVersion", "2.0", CVAR_ROM | CVAR_SERVERINFO, 0, qfalse },
 	{ &g_truePing, "g_truePing", "1", CVAR_ARCHIVE, 0, qtrue },
-	{ &g_lightningDamage, "g_lightningDamage", "8", 0, 0, qtrue },
 	// it's CVAR_SYSTEMINFO so the client's sv_fps will be automagically set to its value
 	{ &sv_fps, "sv_fps", "20", CVAR_SYSTEMINFO | CVAR_ARCHIVE, 0, qfalse },
 //unlagged - server options
+	{ &g_cpmweapons, "g_cpmweapons", "1", CVAR_SYSTEMINFO, 0, qfalse },
 
 	{ &g_rankings, "g_rankings", "0", 0, 0, qfalse},
 	{ &g_localTeamPref, "g_localTeamPref", "", 0, 0, qfalse }

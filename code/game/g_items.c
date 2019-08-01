@@ -208,9 +208,28 @@ int Pickup_Holdable( gentity_t *ent, gentity_t *other ) {
 
 void Add_Ammo (gentity_t *ent, int weapon, int count)
 {
+	int max_ammo = 200;
+	if ( g_cpmweapons.integer ) {
+		switch ( weapon ) {
+		case WP_LIGHTNING:
+			//max_ammo = 150;
+			max_ammo = 300; // we deal half the damage with twice the shots, so double ammo ammounts
+			break;
+		case WP_PLASMAGUN:
+			max_ammo = 100;
+			break;
+		case WP_SHOTGUN:
+		case WP_GRENADE_LAUNCHER:
+		case WP_ROCKET_LAUNCHER:
+		case WP_RAILGUN:
+		case WP_BFG:
+			max_ammo = 25;
+			break;
+		}
+	}
 	ent->client->ps.ammo[weapon] += count;
-	if ( ent->client->ps.ammo[weapon] > 200 ) {
-		ent->client->ps.ammo[weapon] = 200;
+	if ( ent->client->ps.ammo[weapon] > max_ammo ) {
+		ent->client->ps.ammo[weapon] = max_ammo;
 	}
 }
 

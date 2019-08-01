@@ -636,7 +636,7 @@ void CG_PredictPlayerState( void ) {
     cg_pmove.pmove_qwairspeed = pmove_qwairspeed.value;
     cg_pmove.pmove_overbouncefix = pmove_overbouncefix.integer;
 	cg_pmove.pmove_flags = pmove_flags.integer;
-	cg_pmove.pmove_cpmweapons = pmove_cpmweapons.integer;
+	cg_pmove.pmove_cpmweapons = cg_cpmweapons.integer;
 
 //unlagged - optimized prediction
 	// Like the comments described above, a player's state is entirely

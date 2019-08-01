@@ -830,7 +830,8 @@ extern	vmCvar_t	pmove_qwairaccel;
 extern	vmCvar_t	pmove_qwairspeed;
 extern	vmCvar_t	pmove_overbouncefix;
 extern	vmCvar_t	pmove_flags;
-extern	vmCvar_t	pmove_cpmweapons;
+
+extern	vmCvar_t	g_cpmweapons;
 
 extern	vmCvar_t	g_rankings;
 extern	vmCvar_t	g_enableDust;
@@ -845,10 +846,11 @@ extern	vmCvar_t	g_unlaggedVersion;
 extern	vmCvar_t	g_truePing;
 // server admins can adjust this if they *believe* the lightning 
 // gun is too powerful with lag compensation
-extern	vmCvar_t	g_lightningDamage;
 // this is for convenience - using "sv_fps.integer" is nice :)
 extern	vmCvar_t	sv_fps;
 //unlagged - server options
+
+extern	vmCvar_t	g_cpmweapons;
 
 void	trap_Print( const char *text );
 void	trap_Error( const char *text ) __attribute__((noreturn));
