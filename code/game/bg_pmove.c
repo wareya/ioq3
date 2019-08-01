@@ -52,6 +52,8 @@ int		pm_overbouncefix = 1;
 int		pm_flags = 31;
 const float pm_airdecelerate_boost = 2; // needed to behave like CPMA
 
+int		pm_cpmweapons = 1;
+
 float	pm_wateraccelerate = 4.0f;
 float	pm_flyaccelerate = 8.0f;
 
@@ -1627,7 +1629,8 @@ static void PM_BeginWeaponChange( int weapon ) {
 
 	PM_AddEvent( EV_CHANGE_WEAPON );
 	pm->ps->weaponstate = WEAPON_DROPPING;
-	pm->ps->weaponTime += 200;
+	if ( !pm_cpmweapons )
+		pm->ps->weaponTime += 200;
 	PM_StartTorsoAnim( TORSO_DROP );
 }
 
@@ -1651,7 +1654,8 @@ static void PM_FinishWeaponChange( void ) {
 
 	pm->ps->weapon = weapon;
 	pm->ps->weaponstate = WEAPON_RAISING;
-	pm->ps->weaponTime += 250;
+	if ( !pm_cpmweapons )
+		pm->ps->weaponTime += 250;
 	PM_StartTorsoAnim( TORSO_RAISE );
 }
 
@@ -2180,6 +2184,7 @@ void Pmove (pmove_t *pmove) {
 	pm_qwairaccel = pmove->pmove_qwairaccel;
 	pm_qwairspeed = pmove->pmove_qwairspeed;
 	pm_overbouncefix = pmove->pmove_overbouncefix;
+	pm_cpmweapons = pmove->pmove_cpmweapons;
 
 	finalTime = pmove->cmd.serverTime;
 

@@ -349,6 +349,7 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
 		pm.pmove_qwairaccel = pmove_qwairaccel.value;
 		pm.pmove_qwairspeed = pmove_qwairspeed.value;
 		pm.pmove_overbouncefix = pmove_overbouncefix.value;
+		pm.pmove_cpmweapons = pmove_cpmweapons.value;
 
 		// perform a pmove
 		Pmove (&pm);
@@ -1063,6 +1064,7 @@ void ClientThink_real( gentity_t *ent ) {
 	pm.pmove_qwairspeed = pmove_qwairspeed.value;
 	pm.pmove_overbouncefix = pmove_overbouncefix.integer;
 	pm.pmove_flags = pmove_flags.integer;
+	pm.pmove_cpmweapons = pmove_cpmweapons.integer;
 	
 	VectorCopy( client->ps.origin, client->oldOrigin );
 

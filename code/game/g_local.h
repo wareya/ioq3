@@ -830,6 +830,7 @@ extern	vmCvar_t	pmove_qwairaccel;
 extern	vmCvar_t	pmove_qwairspeed;
 extern	vmCvar_t	pmove_overbouncefix;
 extern	vmCvar_t	pmove_flags;
+extern	vmCvar_t	pmove_cpmweapons;
 
 extern	vmCvar_t	g_rankings;
 extern	vmCvar_t	g_enableDust;

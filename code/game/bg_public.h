@@ -196,6 +196,7 @@ typedef struct {
 	float		pmove_qwairspeed;
 	int			pmove_overbouncefix;
 	int			pmove_flags;
+	int			pmove_cpmweapons;
 } pmove_t;
 
 // if a full pmove isn't done on the client, you can just update the angles
