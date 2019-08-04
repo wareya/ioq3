@@ -132,8 +132,11 @@ static void CG_EntityEffects( centity_t *cent ) {
 			trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, 
 				cgs.gameSounds[ cent->currentState.loopSound ] );
 		} else {
-			trap_S_AddRealLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, 
-				cgs.gameSounds[ cent->currentState.loopSound ] );
+			if(!cg_noambient.integer)
+				trap_S_AddRealLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, 
+					cgs.gameSounds[ cent->currentState.loopSound ] );
+			else
+				trap_S_StopLoopingSound( cent->currentState.number );
 		}
 	}
 
@@ -212,6 +215,7 @@ static void CG_Speaker( centity_t *cent ) {
 		return;
 	}
 
+	//if(!cg_noambient.integer)
 	trap_S_StartSound (NULL, cent->currentState.number, CHAN_ITEM, cgs.gameSounds[cent->currentState.eventParm] );
 
 	//	ent->s.frame = ent->wait * 10;

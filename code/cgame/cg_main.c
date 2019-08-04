@@ -207,6 +207,8 @@ vmCvar_t	cg_oldRocket;
 vmCvar_t	cg_oldPlasma;
 vmCvar_t	cg_trueLightning;
 
+vmCvar_t	cg_noambient;
+
 #ifdef MISSIONPACK
 vmCvar_t 	cg_redTeamName;
 vmCvar_t 	cg_blueTeamName;
@@ -391,7 +393,9 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_latentCmds, "cg_latentCmds", "0", CVAR_USERINFO | CVAR_CHEAT },
 	{ &cg_plOut, "cg_plOut", "0", CVAR_USERINFO | CVAR_CHEAT },
 //unlagged - client options
-	{ &cg_trueLightning, "cg_trueLightning", "0.0", CVAR_ARCHIVE}
+	{ &cg_trueLightning, "cg_trueLightning", "0.0", CVAR_ARCHIVE},
+	
+	{ &cg_noambient, "cg_noambient", "1.0", CVAR_ARCHIVE}
 };
 
 static int  cvarTableSize = ARRAY_LEN( cvarTable );
